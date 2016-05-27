@@ -20,20 +20,17 @@ package org.alternative;
 import org.statefulj.framework.core.annotations.StatefulController;
 import org.statefulj.framework.core.annotations.Transition;
 
-@StatefulController(
-	clazz=AltTestUser.class, 
-	startState=AltTestUserController.ONE_STATE
-)
+@StatefulController(clazz = AltTestUser.class, startState = AltTestUserController.ONE_STATE)
 public class AltTestUserController {
-	
-	// States
-	//
-	public static final String ONE_STATE = "one";
-	public static final String TWO_STATE = "two";
-	
-	@Transition(from=ONE_STATE, event="test:one", to=TWO_STATE)
-	public AltTestUser oneToTwo(AltTestUser user, String event) {
-		return user;
-	}
+
+    // States
+    //
+    public static final String ONE_STATE = "one";
+    public static final String TWO_STATE = "two";
+
+    @Transition(from = ONE_STATE, event = "test:one", to = TWO_STATE)
+    public AltTestUser oneToTwo(AltTestUser user, String event) {
+        return user;
+    }
 
 }

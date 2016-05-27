@@ -1,35 +1,36 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.statefulj.persistence</groupId>
 	<artifactId>statefulj-persistence</artifactId>
 	<packaging>pom</packaging>
-
-	<parent>
-		<groupId>org.statefulj</groupId>
-		<artifactId>statefulj</artifactId>
-		<version>1.0.12</version>
-	</parent>
-
 	<name>statefulj-persistence</name>
-	<url>http://www.statefulj.org</url>
-	<description>Parent project for StatefulJ persistence</description>
+
+    <parent>
+        <groupId>org.statefulj</groupId>
+        <artifactId>statefulj</artifactId>
+        <version>2.0.0</version>
+    </parent>
 
 	<properties>
 		<spring.version>4.0.6.RELEASE</spring.version>
 		<spring.data.version>1.6.2.RELEASE</spring.data.version>
 	</properties>
 
+    <modules>
+        <module>statefulj-persistence-common</module>
+        <module>statefulj-persistence-jpa</module>
+    </modules>
+
 	<dependencyManagement>
 		<dependencies>
-		
+
 			<dependency>
 				<groupId>org.statefulj</groupId>
 				<artifactId>statefulj-common</artifactId>
 				<version>${statefulj.version}</version>
 			</dependency>
-			
+
 			<dependency>
 				<groupId>org.statefulj</groupId>
 				<artifactId>statefulj-fsm</artifactId>
@@ -62,16 +63,12 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.17</version>
+				<version>${version.maven.surefire.plugin}</version>
 				<configuration>
 					<reuseForks>false</reuseForks>
 				</configuration>
 			</plugin>
 		</plugins>
 	</build>
-	<modules>
-		<module>statefulj-persistence-common</module>
-		<module>statefulj-persistence-jpa</module>
-		<module>statefulj-persistence-mongo</module>
-	</modules>
+
 </project>

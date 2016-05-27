@@ -32,28 +32,26 @@ import org.statefulj.fsm.RetryException;
  */
 public class DomainEntityMethodInvocationAction extends MethodInvocationAction {
 
-	public DomainEntityMethodInvocationAction(
-			String method,
-			Class<?>[] parameters,
-			FSM<Object> fsm) {
-		super(method, parameters, fsm, null);
-	}
-	
-	@Override
-	protected Object invoke(Object stateful, String event, List<Object> invokeParmList) throws RetryException, SecurityException, IllegalArgumentException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-		return invoke(stateful, invokeParmList);
-	}
-	
-	@Override
-	protected List<Object> buildInvokeParameters(Object stateful, String event, List<Object> parmList) {
+    public DomainEntityMethodInvocationAction(String method, Class<?>[] parameters, FSM<Object> fsm) {
+        super(method, parameters, fsm, null);
+    }
 
-		// Add the Entity and Event to the parm list to pass to the Controller
-		// TODO : Inspect method signature - make entity and event optional
-		//
-		ArrayList<Object> invokeParmList = new ArrayList<Object>(parmList.size() + 1);
-		invokeParmList.add(event);
-		invokeParmList.addAll(parmList);
-		
-		return invokeParmList;
-	}
+    @Override
+    protected Object invoke(Object stateful, String event, List<Object> invokeParmList)
+            throws RetryException, SecurityException, IllegalArgumentException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        return invoke(stateful, invokeParmList);
+    }
+
+    @Override
+    protected List<Object> buildInvokeParameters(Object stateful, String event, List<Object> parmList) {
+
+        // Add the Entity and Event to the parm list to pass to the Controller
+        // TODO : Inspect method signature - make entity and event optional
+        //
+        ArrayList<Object> invokeParmList = new ArrayList<Object>(parmList.size() + 1);
+        invokeParmList.add(event);
+        invokeParmList.addAll(parmList);
+
+        return invokeParmList;
+    }
 }

@@ -17,8 +17,8 @@
  */
 package org.alternative;
 
-import org.statefulj.framework.core.model.PersistenceSupportBeanFactory;
 import org.statefulj.framework.core.mocks.MockPersistenceSupportBeanFactory;
+import org.statefulj.framework.core.model.PersistenceSupportBeanFactory;
 
 /**
  * @author Andrew Hall
@@ -26,9 +26,9 @@ import org.statefulj.framework.core.mocks.MockPersistenceSupportBeanFactory;
  */
 public class AltTestPersistenceSupportBeanFactory extends MockPersistenceSupportBeanFactory implements PersistenceSupportBeanFactory {
 
-	@Override
-	public Class<?> getKey() {
-		return AltTestRepositoryFactoryBeanSupport.class;
-	}
+    @Override
+    public Class<?> getKey() {
+        return AltTestRepositoryFactoryBeanSupport.class;
+    }
 
 }

@@ -25,14 +25,13 @@ package org.statefulj.fsm;
  */
 public class StaleStateException extends RetryException {
 
+    private static final long serialVersionUID = 1L;
 
-	private static final long serialVersionUID = 1L;
+    public StaleStateException() {
+        super();
+    }
 
-	public StaleStateException() {
-		super();
-	}
-	
-	public StaleStateException(String err) {
-		super(err);
-	}
+    public StaleStateException(String err) {
+        super(err);
+    }
 }

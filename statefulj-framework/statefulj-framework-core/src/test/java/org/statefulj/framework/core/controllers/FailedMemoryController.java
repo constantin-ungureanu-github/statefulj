@@ -21,18 +21,15 @@ import org.statefulj.framework.core.annotations.StatefulController;
 import org.statefulj.framework.core.annotations.Transition;
 import org.statefulj.framework.core.model.User;
 
-@StatefulController(
-	clazz=User.class, 
-	startState=MemoryController.ONE_STATE
-)
+@StatefulController(clazz = User.class, startState = MemoryController.ONE_STATE)
 public class FailedMemoryController {
-	
-	// States
-	//
-	public static final String ONE_STATE = "one";
 
-	@Transition(from=ONE_STATE, event="springmvc:one")
-	public void invalidTranstion(User user, String event) {
-	}
+    // States
+    //
+    public static final String ONE_STATE = "one";
+
+    @Transition(from = ONE_STATE, event = "springmvc:one")
+    public void invalidTranstion(User user, String event) {
+    }
 
 }

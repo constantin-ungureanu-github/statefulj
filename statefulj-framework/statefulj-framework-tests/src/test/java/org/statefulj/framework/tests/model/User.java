@@ -25,30 +25,29 @@ import javax.persistence.Table;
 
 import org.statefulj.persistence.jpa.model.StatefulEntity;
 
-
 @Entity
-@Table(name="users")
+@Table(name = "users")
 public class User extends StatefulEntity {
-	
-	// States
-	//
-	public static final String ONE_STATE = "one";
-	public static final String TWO_STATE = "two";
-	public static final String THREE_STATE = "three";
-	public static final String FOUR_STATE = "four";
-	public static final String FIVE_STATE = "five";
-	public static final String SIX_STATE = "six";
-	public static final String SEVEN_STATE = "seven";
-	
-	@Id
-	@GeneratedValue(strategy=GenerationType.SEQUENCE)
-	Long id;
 
-	public Long getId() {
-		return id;
-	}
+    // States
+    //
+    public static final String ONE_STATE = "one";
+    public static final String TWO_STATE = "two";
+    public static final String THREE_STATE = "three";
+    public static final String FOUR_STATE = "four";
+    public static final String FIVE_STATE = "five";
+    public static final String SIX_STATE = "six";
+    public static final String SEVEN_STATE = "seven";
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    Long id;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 }

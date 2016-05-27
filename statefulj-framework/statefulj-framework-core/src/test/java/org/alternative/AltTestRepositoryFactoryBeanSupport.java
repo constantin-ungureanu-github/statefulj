@@ -20,13 +20,12 @@ package org.alternative;
 import org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 
-
 @SuppressWarnings("rawtypes")
 public class AltTestRepositoryFactoryBeanSupport extends RepositoryFactoryBeanSupport {
 
-	@Override
-	protected RepositoryFactorySupport createRepositoryFactory() {
-		return null;
-	}
+    @Override
+    protected RepositoryFactorySupport createRepositoryFactory() {
+        return null;
+    }
 
 }

@@ -24,21 +24,21 @@ package org.statefulj.fsm;
  *
  */
 public class WaitAndRetryException extends RetryException {
-	
-	private static final long serialVersionUID = 1L;
 
-	private int wait;
-	
-	public WaitAndRetryException(int wait) {
-		this.wait = wait;
-	}
+    private static final long serialVersionUID = 1L;
 
-	public int getWait() {
-		return wait;
-	}
+    private int wait;
 
-	public void setWait(int wait) {
-		this.wait = wait;
-	}
+    public WaitAndRetryException(int wait) {
+        this.wait = wait;
+    }
+
+    public int getWait() {
+        return wait;
+    }
+
+    public void setWait(int wait) {
+        this.wait = wait;
+    }
 
 }

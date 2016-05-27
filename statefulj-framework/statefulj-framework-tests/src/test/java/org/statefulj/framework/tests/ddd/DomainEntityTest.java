@@ -17,6 +17,11 @@
  */
 package org.statefulj.framework.tests.ddd;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.statefulj.framework.tests.utils.ReflectionUtils.invoke;
+
 import java.lang.reflect.InvocationTargetException;
 
 import javax.annotation.Resource;
@@ -33,40 +38,36 @@ import org.statefulj.framework.core.model.StatefulFSM;
 import org.statefulj.framework.core.model.impl.ReferenceFactoryImpl;
 import org.statefulj.fsm.TooBusyException;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-import static org.statefulj.framework.tests.utils.ReflectionUtils.*;
-
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration({"/applicationContext-DomainEntityTests.xml"})
+@ContextConfiguration({ "/applicationContext-DomainEntityTests.xml" })
 public class DomainEntityTest {
-	
-	@FSM
-	StatefulFSM<DomainEntity> fsm;
-	
-	@Resource
-	ApplicationContext appContext;
 
-	@Test
-	public void testDomainEntityFSM() throws TooBusyException, SecurityException, IllegalArgumentException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-		ReferenceFactory refFactory = new ReferenceFactoryImpl("domainEntity");
-		
-		// Make sure proxy is constructed
-		//
-		Object mvcBinder = this.appContext.getBean(refFactory.getBinderId("springmvc"));
+    @FSM
+    StatefulFSM<DomainEntity> fsm;
 
-		// Verify new User scenario
-		//
-		HttpServletRequest context = mock(HttpServletRequest.class);		
-		DomainEntity entity = invoke(mvcBinder, "$_get_event-x", DomainEntity.class, context, 1);
-		
-		assertNotNull(entity);
-		assertEquals(1, entity.getValue());
-		assertEquals(DomainEntity.STATE_B, entity.getState());
-		
-		entity.onEventY(2);
-		assertEquals(2, entity.getValue());
-		assertEquals(DomainEntity.STATE_A, entity.getState());
-	}
-	
+    @Resource
+    ApplicationContext appContext;
+
+    @Test
+    public void testDomainEntityFSM() throws TooBusyException, SecurityException, IllegalArgumentException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        ReferenceFactory refFactory = new ReferenceFactoryImpl("domainEntity");
+
+        // Make sure proxy is constructed
+        //
+        Object mvcBinder = this.appContext.getBean(refFactory.getBinderId("springmvc"));
+
+        // Verify new User scenario
+        //
+        HttpServletRequest context = mock(HttpServletRequest.class);
+        DomainEntity entity = invoke(mvcBinder, "$_get_event-x", DomainEntity.class, context, 1);
+
+        assertNotNull(entity);
+        assertEquals(1, entity.getValue());
+        assertEquals(DomainEntity.STATE_B, entity.getState());
+
+        entity.onEventY(2);
+        assertEquals(2, entity.getValue());
+        assertEquals(DomainEntity.STATE_A, entity.getState());
+    }
+
 }

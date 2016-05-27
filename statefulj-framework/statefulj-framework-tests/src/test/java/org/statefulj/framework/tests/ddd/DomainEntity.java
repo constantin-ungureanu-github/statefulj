@@ -17,6 +17,8 @@
  */
 package org.statefulj.framework.tests.ddd;
 
+import static org.statefulj.framework.tests.ddd.DomainEntity.STATE_A;
+
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Transient;
@@ -30,84 +32,73 @@ import org.statefulj.framework.core.model.StatefulFSM;
 import org.statefulj.fsm.TooBusyException;
 import org.statefulj.persistence.jpa.model.StatefulEntity;
 
-import static org.statefulj.framework.tests.ddd.DomainEntity.*;
-
 /**
- * Entity class.  We will scope this as a non-singleton (prototype)
+ * Entity class. We will scope this as a non-singleton (prototype)
  * 
  * @author Andrew Hall
  *
  */
 @Entity
-@Scope("prototype") 
-@StatefulController(
-	clazz=DomainEntity.class,
-	startState=STATE_A
-)
+@Scope("prototype")
+@StatefulController(clazz = DomainEntity.class, startState = STATE_A)
 public class DomainEntity extends StatefulEntity {
 
-	// States
-	//
-	public final static String STATE_A = "A";
-	public final static String STATE_B = "B";
-	
-	// Internal Events
-	//
-	private final static String EVENT_X = "event-x";
-	private final static String EVENT_Y = "event-y";
-	private final static String SPRING_EVENT_X = "springmvc:/" + EVENT_X;
-	private final static String SPRING_EVENT_Y = "springmvc:/" + EVENT_Y;
-	
-	@Id
-	private Long id;
-	
-	private int value;
-	
-	@FSM
-	@Transient
-	private StatefulFSM<DomainEntity> fsm;
-	
-	public Long getId() {
-		return id;
-	}
+    // States
+    //
+    public final static String STATE_A = "A";
+    public final static String STATE_B = "B";
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    // Internal Events
+    //
+    private final static String EVENT_X = "event-x";
+    private final static String EVENT_Y = "event-y";
+    private final static String SPRING_EVENT_X = "springmvc:/" + EVENT_X;
+    private final static String SPRING_EVENT_Y = "springmvc:/" + EVENT_Y;
 
-	public int getValue() {
-		return value;
-	}
+    @Id
+    private Long id;
 
-	public void setValue(int value) {
-		this.value = value;
-	}
-	
-	public void onEventX(int value) throws TooBusyException {
-		fsm.onEvent(this, EVENT_X, value);
-	}
+    private int value;
 
-	public void onEventY(int value) throws TooBusyException {
-		fsm.onEvent(this, EVENT_Y, value);
-	}
+    @FSM
+    @Transient
+    private StatefulFSM<DomainEntity> fsm;
 
-	@Transitions({
-		@Transition(from=STATE_A, event=EVENT_X, to=STATE_B),
-		@Transition(from=STATE_A, event=SPRING_EVENT_X, to=STATE_B),
-	})
-	protected DomainEntity actionAXB(String event, Integer value) {
-		System.out.println("actionAXB");
-		this.value = value;
-		return this;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	@Transitions({
-		@Transition(from=STATE_B, event=EVENT_Y, to=STATE_A),
-		@Transition(from=STATE_B, event=SPRING_EVENT_Y, to=STATE_A),
-	})
-	protected DomainEntity actionBYA(String event, Integer value) {
-		System.out.println("actionBYA");
-		this.value = value;
-		return this;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public int getValue() {
+        return value;
+    }
+
+    public void setValue(int value) {
+        this.value = value;
+    }
+
+    public void onEventX(int value) throws TooBusyException {
+        fsm.onEvent(this, EVENT_X, value);
+    }
+
+    public void onEventY(int value) throws TooBusyException {
+        fsm.onEvent(this, EVENT_Y, value);
+    }
+
+    @Transitions({ @Transition(from = STATE_A, event = EVENT_X, to = STATE_B), @Transition(from = STATE_A, event = SPRING_EVENT_X, to = STATE_B), })
+    protected DomainEntity actionAXB(String event, Integer value) {
+        System.out.println("actionAXB");
+        this.value = value;
+        return this;
+    }
+
+    @Transitions({ @Transition(from = STATE_B, event = EVENT_Y, to = STATE_A), @Transition(from = STATE_B, event = SPRING_EVENT_Y, to = STATE_A), })
+    protected DomainEntity actionBYA(String event, Integer value) {
+        System.out.println("actionBYA");
+        this.value = value;
+        return this;
+    }
 }

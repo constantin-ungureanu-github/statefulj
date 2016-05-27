@@ -24,214 +24,139 @@ import org.statefulj.fsm.model.State;
 import org.statefulj.fsm.model.StateActionPair;
 import org.statefulj.fsm.model.Transition;
 
-/**
- * The FSM is responsible for the processing the event with the current State and persisting
- * the State with the composite Persister
- *
- * @author Andrew Hall
- *
- */
 public class FSM<T> {
+    private static final Logger logger = LoggerFactory.getLogger(FSM.class);
+    private static final int DEFAULT_RETRIES = 20;
+    private static final int DEFAULT_RETRY_INTERVAL = 250;
+    private int retryAttempts = FSM.DEFAULT_RETRIES;
+    private int retryInterval = FSM.DEFAULT_RETRY_INTERVAL;
+    private Persister<T> persister;
+    private String name = "FSM";
 
-	private static final Logger logger = LoggerFactory.getLogger(FSM.class);
+    public FSM(final String name) {
+        this.name = name;
+    }
 
-	private static final int DEFAULT_RETRIES = 20;
-	private static final int DEFAULT_RETRY_INTERVAL = 250;  // 250 ms
+    public FSM(final Persister<T> persister) {
+        this.persister = persister;
+    }
 
-	private int retryAttempts = DEFAULT_RETRIES;
-	private int retryInterval = DEFAULT_RETRY_INTERVAL;
+    public FSM(final String name, final Persister<T> persister) {
+        this.name = name;
+        this.persister = persister;
+    }
 
-	private Persister<T> persister;
-	private String name = "FSM";
+    public FSM(final String name, final Persister<T> persister, final int retryAttempts, final int retryInterval) {
+        this.name = name;
+        this.persister = persister;
+        this.retryAttempts = retryAttempts;
+        this.retryInterval = retryInterval;
+    }
 
-	/**
-	 * FSM Constructor with the name of the FSM
-	 *
-	 * @param name Name associated with the FSM
-	 */
-	public FSM(String name) {
-		this.name = name;
-	}
+    public State<T> onEvent(final T stateful, final String event, final Object... args) throws TooBusyException {
+        int attempts = 0;
 
-	/**
-	 * FSM Constructor with the Persister responsible for setting the State on the Entity
-	 *
-	 * @param persister Persister responsible for setting the State on the Entity
-	 */
-	public FSM(Persister<T> persister) {
-		this.persister = persister;
-	}
+        while ((this.retryAttempts == -1) || (attempts < this.retryAttempts)) {
+            try {
+                State<T> current = this.getCurrentState(stateful);
 
-	/**
-	 * FSM Constructor with the name of the FSM and Persister responsible for setting the State on the Entity
-	 *
-	 * @param name Name associated with the FSM
-	 * @param persister Persister responsible for setting the State on the Entity
-	 */
-	public FSM(String name, Persister<T> persister) {
-		this.name = name;
-		this.persister = persister;
-	}
+                // Fetch the transition for this event from the current state
+                //
+                final Transition<T> transition = this.getTransition(event, current);
 
-	/**
-	 * FSM Constructor
-	 *
-	 * @param name Name associated with the FSM
-	 * @param persister Persister responsible for setting the State on the Entity
-	 * @param retryAttempts Number of Retry Attempts.  A value of -1 indicates unlimited Attempts
-	 * @param retryInterval Time between Retry Attempts in milliseconds
-	 */
-	public FSM(String name, Persister<T> persister, int retryAttempts, int retryInterval) {
-		this.name = name;
-		this.persister = persister;
-		this.retryAttempts = retryAttempts;
-		this.retryInterval = retryInterval;
-	}
+                // Is there one?
+                //
+                if (transition != null) {
+                    current = this.transition(stateful, current, event, transition, args);
+                } else {
 
-	/**
-	 * Process event.  Will handle all retry attempts.  If attempts exceed maximum retries,
-	 * it will throw a TooBusyException.
-	 *
-	 * @param stateful The Stateful Entity
-	 * @param event The Event
-	 * @param args Optional parameters to pass into the Action
-	 * @return The current State
-	 * @throws TooBusyException Exception indicating that we've exceeded the number of RetryAttempts
-	 */
-	public State<T> onEvent(T stateful, String event, Object ... args) throws TooBusyException {
+                    if (FSM.logger.isDebugEnabled()) {
+                        FSM.logger.debug("{}({})::{}({})->{}/noop", name, stateful.getClass().getSimpleName(), current.getName(), event, current.getName());
+                    }
 
-		int attempts = 0;
+                    if (current.isBlocking()) {
+                        this.setCurrent(stateful, current, current);
+                        throw new WaitAndRetryException(this.retryInterval);
+                    }
+                }
 
-		while(this.retryAttempts == -1 || attempts < this.retryAttempts) {
-			try {
-				State<T> current = this.getCurrentState(stateful);
+                return current;
 
-				// Fetch the transition for this event from the current state
-				//
-				Transition<T> transition = this.getTransition(event, current);
+            } catch (final RetryException re) {
+                FSM.logger.warn("{}({})::Retrying event", name, stateful);
 
-				// Is there one?
-				//
-				if (transition != null) {
-					current = this.transition(stateful, current, event, transition, args);
-				} else {
+                if (WaitAndRetryException.class.isInstance(re)) {
+                    try {
+                        Thread.sleep(((WaitAndRetryException) re).getWait());
+                    } catch (final InterruptedException ie) {
+                        throw new RuntimeException(ie);
+                    }
+                }
+                attempts++;
+            }
+        }
+        FSM.logger.error("{}({})::Unable to process event", this.name, stateful);
+        throw new TooBusyException();
+    }
 
-                    if (logger.isDebugEnabled())
-                        logger.debug("{}({})::{}({})->{}/noop",
-                                this.name,
-                                stateful.getClass().getSimpleName(),
-                                current.getName(),
-                                event,
-                                current.getName());
+    public int getRetryAttempts() {
+        return retryAttempts;
+    }
 
-					// If blocking, force a transition to the current state as
-					// it's possible that another thread has moved out of the blocking state.
-					// Either way, we'll retry this event
-					//
-					if (current.isBlocking()) {
-						this.setCurrent(stateful, current, current);
-						throw new WaitAndRetryException(this.retryInterval);
-					}
-				}
+    public void setRetryAttempts(final int retries) {
+        this.retryAttempts = retries;
+    }
 
-				return current;
+    public int getRetryInterval() {
+        return retryInterval;
+    }
 
-			} catch(RetryException re) {
+    public void setRetryInterval(final int retryInterval) {
+        this.retryInterval = retryInterval;
+    }
 
-				logger.warn("{}({})::Retrying event", this.name, stateful);
+    public Persister<T> getPersister() {
+        return persister;
+    }
 
-				// Wait?
-				//
-				if (WaitAndRetryException.class.isInstance(re)) {
-					try {
-						Thread.sleep(((WaitAndRetryException)re).getWait());
-					} catch(InterruptedException ie) {
-						throw new RuntimeException(ie);
-					}
-				}
-				attempts++;
-			}
-		}
-		logger.error("{}({})::Unable to process event", this.name, stateful);
-		throw new TooBusyException();
-	}
+    public void setPersister(final Persister<T> persister) {
+        this.persister = persister;
+    }
 
-	public int getRetryAttempts() {
-		return retryAttempts;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public void setRetryAttempts(int retries) {
-		this.retryAttempts = retries;
-	}
+    public void setName(final String name) {
+        this.name = name;
+    }
 
-	public int getRetryInterval() {
-		return retryInterval;
-	}
+    public State<T> getCurrentState(final T obj) {
+        return this.persister.getCurrent(obj);
+    }
 
-	public void setRetryInterval(int retryInterval) {
-		this.retryInterval = retryInterval;
-	}
+    protected Transition<T> getTransition(final String event, final State<T> current) {
+        return current.getTransition(event);
+    }
 
-	public Persister<T> getPersister() {
-		return persister;
-	}
+    protected State<T> transition(final T stateful, final State<T> current, final String event, final Transition<T> transition, final Object... args) throws RetryException {
+        final StateActionPair<T> pair = transition.getStateActionPair(stateful);
+        setCurrent(stateful, current, pair.getState());
+        executeAction(pair.getAction(), stateful, event, current.getName(), pair.getState().getName(), args);
+        return pair.getState();
+    }
 
-	public void setPersister(Persister<T> persister) {
-		this.persister = persister;
-	}
+    protected void setCurrent(final T stateful, final State<T> current, final State<T> next) throws StaleStateException {
+        persister.setCurrent(stateful, current, next);
+    }
 
-	public String getName() {
-		return name;
-	}
+    protected void executeAction(final Action<T> action, final T stateful, final String event, final String from, final String to, final Object... args) throws RetryException {
+        if (logger.isDebugEnabled()) {
+            logger.debug("{}({})::{}({})->{}/{}", this.name, stateful.getClass().getSimpleName(), from, event, to, (action == null) ? "noop" : action.toString());
+        }
 
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public State<T> getCurrentState(T obj) {
-		return this.persister.getCurrent(obj);
-	}
-
-	protected Transition<T> getTransition(String event, State<T> current) {
-		return current.getTransition(event);
-	}
-
-	protected State<T> transition(T stateful, State<T> current, String event, Transition<T> transition, Object... args) throws RetryException {
-		StateActionPair<T> pair = transition.getStateActionPair(stateful);
-		setCurrent(stateful, current, pair.getState());
-		executeAction(
-				pair.getAction(),
-				stateful,
-				event,
-				current.getName(),
-				pair.getState().getName(),
-				args);
-		return pair.getState();
-	}
-
-	protected void setCurrent(T stateful, State<T> current, State<T> next) throws StaleStateException {
-		persister.setCurrent(stateful, current, next);
-	}
-
-	protected void executeAction(
-			Action<T> action,
-			T stateful,
-			String event,
-			String from,
-			String to,
-			Object... args) throws RetryException {
-
-        if (logger.isDebugEnabled())
-            logger.debug("{}({})::{}({})->{}/{}",
-                    this.name,
-                    stateful.getClass().getSimpleName(),
-                    from,
-                    event,
-                    to,
-                    (action == null) ? "noop" : action.toString());
-
-		if (action != null) {
-			action.execute(stateful, event, args);
-		}
-	}
+        if (action != null) {
+            action.execute(stateful, event, args);
+        }
+    }
 }

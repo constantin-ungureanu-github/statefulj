@@ -19,20 +19,21 @@ package org.statefulj.fsm.model;
 
 /**
  * A {@link org.statefulj.fsm.model.State}/{@link org.statefulj.fsm.model.Action} pair
+ * 
  * @author Andrew Hall
  *
  * @param <T>
  */
 public interface StateActionPair<T> {
-	
-	/**
-	 * @return the {@link org.statefulj.fsm.model.State}
-	 */
-	State<T> getState();
 
-	/**
-	 * @return {@link org.statefulj.fsm.model.Action}
-	 */
-	Action<T> getAction();
-	
+    /**
+     * @return the {@link org.statefulj.fsm.model.State}
+     */
+    State<T> getState();
+
+    /**
+     * @return {@link org.statefulj.fsm.model.Action}
+     */
+    Action<T> getAction();
+
 }

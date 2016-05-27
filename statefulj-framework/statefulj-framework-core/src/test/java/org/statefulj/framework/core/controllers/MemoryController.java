@@ -23,23 +23,20 @@ import org.statefulj.framework.core.annotations.Transition;
 import org.statefulj.framework.core.model.StatefulFSM;
 import org.statefulj.framework.core.model.User;
 
-@StatefulController(
-	clazz=User.class, 
-	startState=MemoryController.ONE_STATE
-)
+@StatefulController(clazz = User.class, startState = MemoryController.ONE_STATE)
 public class MemoryController {
-	
-	// States
-	//
-	public static final String ONE_STATE = "one";
-	public static final String TWO_STATE = "two";
-	
-	@FSM
-	StatefulFSM<User> fsm;
-	
-	@Transition(from=ONE_STATE, event="one", to=TWO_STATE)
-	public User oneToTwo(User user, String event) {
-		return user;
-	}
+
+    // States
+    //
+    public static final String ONE_STATE = "one";
+    public static final String TWO_STATE = "two";
+
+    @FSM
+    StatefulFSM<User> fsm;
+
+    @Transition(from = ONE_STATE, event = "one", to = TWO_STATE)
+    public User oneToTwo(User user, String event) {
+        return user;
+    }
 
 }

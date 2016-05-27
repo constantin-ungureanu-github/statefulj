@@ -25,33 +25,23 @@ import org.springframework.beans.factory.config.RuntimeBeanReference;
 
 public interface PersistenceSupportBeanFactory {
 
-	/**
-	 * Associate this PersistenceSupportBeanFactory with a Spring Data Repo Factory
-	 * 
-	 * @return Class of the Repo Factory
-	 */
-	Class<?> getKey(); 
-	
-	Class<?> getIdType(); 
+    /**
+     * Associate this PersistenceSupportBeanFactory with a Spring Data Repo Factory
+     * 
+     * @return Class of the Repo Factory
+     */
+    Class<?> getKey();
 
-	Class<? extends Annotation> getIdAnnotationType();
+    Class<?> getIdType();
 
-	BeanDefinition buildFactoryBean(Class<?> statefulClass);
-	
-	BeanDefinition buildFinderBean(String repoBeanId);
-	
-	BeanDefinition buildPersisterBean(
-			Class<?> statefulClass,
-			String repoBeanId,
-			BeanDefinition repoBeanDefinitionFactory,
-			String stateFieldName,
-			String startStateId, 
-			List<RuntimeBeanReference> stateBeans);
+    Class<? extends Annotation> getIdAnnotationType();
 
-	BeanDefinition buildFSMHarnessBean(
-			Class<?> statefulClass, 
-			String fsmBeanId,
-			String factoryId,
-			String finderId,
-			BeanDefinition repoBeanDefinitionFactory);
+    BeanDefinition buildFactoryBean(Class<?> statefulClass);
+
+    BeanDefinition buildFinderBean(String repoBeanId);
+
+    BeanDefinition buildPersisterBean(Class<?> statefulClass, String repoBeanId, BeanDefinition repoBeanDefinitionFactory, String stateFieldName, String startStateId,
+            List<RuntimeBeanReference> stateBeans);
+
+    BeanDefinition buildFSMHarnessBean(Class<?> statefulClass, String fsmBeanId, String factoryId, String finderId, BeanDefinition repoBeanDefinitionFactory);
 }

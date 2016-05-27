@@ -22,44 +22,38 @@ import org.statefulj.fsm.model.State;
 import org.statefulj.fsm.model.impl.DeterministicTransitionImpl;
 
 /**
- * Extend {@link org.statefulj.fsm.model.impl.DeterministicTransitionImpl} to provide additional
- * functionality such as "any" transition support and reloading support
+ * Extend {@link org.statefulj.fsm.model.impl.DeterministicTransitionImpl} to provide additional functionality such as "any" transition support and reloading support
  * 
  * @author Andrew Hall
  *
- * @param <T> The Stateful Entity type
+ * @param <T>
+ *            The Stateful Entity type
  */
 public class TransitionImpl<T> extends DeterministicTransitionImpl<T> {
-	
-	private boolean any = false;
-	
-	private boolean reload = false;
 
-	public TransitionImpl(
-			State<T> from, 
-			State<T> to, 
-			String event,
-			Action<T> action,
-			boolean any,
-			boolean reload) {
-		super(from, to, event, action);
-		this.any = any;
-		this.reload = reload;
-	}
+    private boolean any = false;
 
-	public boolean isAny() {
-		return any;
-	}
+    private boolean reload = false;
 
-	public void setAny(boolean any) {
-		this.any = any;
-	}
+    public TransitionImpl(State<T> from, State<T> to, String event, Action<T> action, boolean any, boolean reload) {
+        super(from, to, event, action);
+        this.any = any;
+        this.reload = reload;
+    }
 
-	public boolean isReload() {
-		return reload;
-	}
+    public boolean isAny() {
+        return any;
+    }
 
-	public void setReload(boolean reload) {
-		this.reload = reload;
-	}
+    public void setAny(boolean any) {
+        this.any = any;
+    }
+
+    public boolean isReload() {
+        return reload;
+    }
+
+    public void setReload(boolean reload) {
+        this.reload = reload;
+    }
 }

@@ -1,20 +1,3 @@
-/***
- * 
- * Copyright 2014 Andrew Hall
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
- */
 package org.statefulj.framework.binders.camel;
 
 import java.lang.reflect.Field;
@@ -23,6 +6,16 @@ import java.lang.reflect.Method;
 import java.util.Map;
 
 import javax.persistence.Id;
+
+import org.apache.camel.Consume;
+import org.apache.camel.component.bean.BeanInvocation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.statefulj.common.utils.ReflectionUtils;
+import org.statefulj.framework.binders.common.utils.JavassistUtils;
+import org.statefulj.framework.core.model.EndpointBinder;
+import org.statefulj.framework.core.model.FSMHarness;
+import org.statefulj.framework.core.model.ReferenceFactory;
 
 import javassist.CannotCompileException;
 import javassist.ClassClassPath;
@@ -37,206 +30,161 @@ import javassist.bytecode.MethodInfo;
 import javassist.bytecode.annotation.Annotation;
 import javassist.bytecode.annotation.StringMemberValue;
 
-import org.apache.camel.Consume;
-import org.apache.camel.component.bean.BeanInvocation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static org.statefulj.framework.binders.common.utils.JavassistUtils.*;
-
-import org.statefulj.common.utils.ReflectionUtils;
-import org.statefulj.framework.core.model.EndpointBinder;
-import org.statefulj.framework.core.model.FSMHarness;
-import org.statefulj.framework.core.model.ReferenceFactory;
-
 public class CamelBinder implements EndpointBinder {
-	
-	public final static String KEY = "camel";
+    private static final Logger logger = LoggerFactory.getLogger(CamelBinder.class);
+    public final static String KEY = "camel";
+    private final String CONSUMER_SUFFIX = "CamelBinder";
+    private final String HARNESS_VAR = "harness";
 
-	private static final Logger logger = LoggerFactory.getLogger(CamelBinder.class);
+    public String getKey() {
+        return CamelBinder.KEY;
+    }
 
-	private final String CONSUMER_SUFFIX = "CamelBinder";
-	
-	private final String HARNESS_VAR = "harness";
+    public static Object lookupId(Object msg) {
+        Object id = null;
+        if ((msg instanceof String) || Number.class.isAssignableFrom(msg.getClass())) {
+            id = msg;
+        } else {
+            if (BeanInvocation.class.isAssignableFrom(msg.getClass())) {
+                msg = ((BeanInvocation) msg).getArgs()[0];
+            }
+            Field idField = null;
+            try {
+                idField = ReflectionUtils.getFirstAnnotatedField(msg.getClass(), Id.class);
+            } catch (final Throwable t) {
+                // ignore
+            }
+            if (idField == null) {
+                try {
+                    idField = ReflectionUtils.getFirstAnnotatedField(msg.getClass(), org.springframework.data.annotation.Id.class);
+                } catch (final Throwable t) {
+                    // ignore
+                }
+            }
+            if (idField == null) {
+                try {
+                    idField = msg.getClass().getField("id");
+                } catch (final Throwable t) {
+                    // ignore
+                }
+            }
+            if (idField != null) {
+                try {
+                    idField.setAccessible(true);
+                    id = idField.get(msg);
+                } catch (final IllegalArgumentException e) {
+                    throw new RuntimeException(e);
+                } catch (final IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return id;
+    }
 
-	@Override
-	public String getKey() {
-		return KEY;
-	}
+    public Class<?> bindEndpoints(final String beanName, final Class<?> controllerClass, final Class<?> idType, final boolean isDomainEntity, final Map<String, Method> eventMapping,
+            final ReferenceFactory refFactory) throws CannotCompileException, NotFoundException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+        CamelBinder.logger.debug("Building Consumer for {}", controllerClass);
 
-	public static Object lookupId(Object msg) {
-		Object id = null;
-		if (msg instanceof String || Number.class.isAssignableFrom(msg.getClass())) {
-			id = msg;
-		} else {
-			if (BeanInvocation.class.isAssignableFrom(msg.getClass())) {
-				msg = ((BeanInvocation)msg).getArgs()[0];
-			}
-			Field idField = null;
-			try {
-				idField = ReflectionUtils.getFirstAnnotatedField(msg.getClass(), Id.class);
-			} catch(Throwable t) {
-				// ignore
-			}
-			if (idField == null) {
-				try {
-					idField = ReflectionUtils.getFirstAnnotatedField(msg.getClass(), org.springframework.data.annotation.Id.class);
-				} catch(Throwable t) {
-					// ignore
-				}
-			}
-			if (idField == null) {
-				try {
-					idField = msg.getClass().getField("id");
-				} catch (Throwable t) {
-					// ignore
-				}
-			}
-			if (idField != null) {
-				try {
-					idField.setAccessible(true);
-					id = idField.get(msg);
-				} catch (IllegalArgumentException e) {
-					throw new RuntimeException(e);
-				} catch (IllegalAccessException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		}
-		return id;
-	}
-	
-	@Override
-	public Class<?> bindEndpoints(
-			String beanName, 
-			Class<?> controllerClass,
-			Class<?> idType,
-			boolean isDomainEntity,
-			Map<String, Method> eventMapping, 
-			ReferenceFactory refFactory)
-			throws CannotCompileException, NotFoundException,
-			IllegalArgumentException, IllegalAccessException,
-			InvocationTargetException {
-		logger.debug("Building Consumer for {}", controllerClass);
-		
-		// Set up the ClassPool
-		//
-		ClassPool cp = ClassPool.getDefault();
-		cp.appendClassPath(new ClassClassPath(getClass()));
+        final ClassPool cp = ClassPool.getDefault();
+        cp.appendClassPath(new ClassClassPath(getClass()));
 
-		// Create a new Consumer Class 
-		//
-		String camelProxyClassName = controllerClass.getName() + CONSUMER_SUFFIX;
-		CtClass camelProxyClass = cp.makeClass(camelProxyClassName);
-		
-		// Add the member variable referencing the Harness
-		//
-		addFSMHarnessReference(camelProxyClass, refFactory.getFSMHarnessId(), cp);
-		
-		// Copy methods that have a Transition annotation from the Stateful Controller to the Binder
-		//
-		addConsumerMethods(camelProxyClass, eventMapping, cp);
-		
-		// Construct and return the Proxy Class
-		//
-		return camelProxyClass.toClass();
-	}
-	
-	private void addFSMHarnessReference(CtClass camelProxyClass, String fsmHarnessId, ClassPool cp) throws NotFoundException, CannotCompileException {
-		CtClass type = cp.get(FSMHarness.class.getName());
-		CtField field = new CtField(type, HARNESS_VAR, camelProxyClass);
+        final String camelProxyClassName = controllerClass.getName() + CONSUMER_SUFFIX;
+        final CtClass camelProxyClass = cp.makeClass(camelProxyClassName);
 
-		addResourceAnnotation(field, fsmHarnessId);
-		
-		camelProxyClass.addField(field);
-	}
+        addFSMHarnessReference(camelProxyClass, refFactory.getFSMHarnessId(), cp);
+        addConsumerMethods(camelProxyClass, eventMapping, cp);
 
-	private void addConsumerMethods(CtClass camelProxyClass, Map<String,Method> eventMapping, ClassPool cp) throws IllegalArgumentException, NotFoundException, IllegalAccessException, InvocationTargetException, CannotCompileException {
-		
-		// Build a method for each Event
-		//
-		for(String event : eventMapping.keySet()) {
-			addConsumerMethod(camelProxyClass, event, eventMapping.get(event), cp);
-		}
-	}
-	
-	private void addConsumerMethod(CtClass camelProxyClass, String event, Method method, ClassPool cp) throws NotFoundException, IllegalArgumentException, IllegalAccessException, InvocationTargetException, CannotCompileException {
+        return camelProxyClass.toClass();
+    }
 
-		// Clone Method from the StatefulController
-		//
-		CtMethod ctMethod = createConsumerMethod(camelProxyClass, event, method, cp);
+    private void addFSMHarnessReference(final CtClass camelProxyClass, final String fsmHarnessId, final ClassPool cp) throws NotFoundException, CannotCompileException {
+        final CtClass type = cp.get(FSMHarness.class.getName());
+        final CtField field = new CtField(type, HARNESS_VAR, camelProxyClass);
 
-		// Clone method Annotations
-		//
-		addMethodAnnotations(ctMethod, method);
+        JavassistUtils.addResourceAnnotation(field, fsmHarnessId);
 
-		// Add a RequestMapping annotation
-		//
-		addConsumeAnnotation(ctMethod, event);
+        camelProxyClass.addField(field);
+    }
 
-		// Clone the parameters, along with the Annotations
-		//
-		addMessageParameter(ctMethod, method, cp);
+    private void addConsumerMethods(final CtClass camelProxyClass, final Map<String, Method> eventMapping, final ClassPool cp)
+            throws IllegalArgumentException, NotFoundException, IllegalAccessException, InvocationTargetException, CannotCompileException {
 
-		// Add the Method Body
-		//
-		addMethodBody(ctMethod, event);
-		
-		// Add the Method to the Proxy class
-		//
-		camelProxyClass.addMethod(ctMethod);
-	}
-	
-	private CtMethod createConsumerMethod(
-			CtClass camelProxyClass, 
-			String event, 
-			Method method, 
-			ClassPool cp) throws NotFoundException {
-		String methodName = ("$_" + event.replaceAll("[/:\\.]", "_").replace("{", "").replace("}", "")).toLowerCase();
+        // Build a method for each Event
+        //
+        for (final String event : eventMapping.keySet()) {
+            addConsumerMethod(camelProxyClass, event, eventMapping.get(event), cp);
+        }
+    }
 
-		logger.debug(
-				"Create method {} for {}", 
-				methodName,
-				camelProxyClass.getSimpleName());
+    private void addConsumerMethod(final CtClass camelProxyClass, final String event, final Method method, final ClassPool cp)
+            throws NotFoundException, IllegalArgumentException, IllegalAccessException, InvocationTargetException, CannotCompileException {
 
-		CtMethod ctMethod = new CtMethod(CtClass.voidType, methodName, null, camelProxyClass);
-		return ctMethod;
-	}
-	
-	private void addConsumeAnnotation(CtMethod ctMethod, String uri) {
-		MethodInfo methodInfo = ctMethod.getMethodInfo();
-		ConstPool constPool = methodInfo.getConstPool();
+        // Clone Method from the StatefulController
+        //
+        final CtMethod ctMethod = createConsumerMethod(camelProxyClass, event, method, cp);
 
-		Annotation consume = new Annotation(Consume.class.getName(), constPool);
-		StringMemberValue valueVal = new StringMemberValue(constPool);
-		valueVal.setValue(uri);
-		consume.addMemberValue("uri", valueVal);
+        // Clone method Annotations
+        //
+        JavassistUtils.addMethodAnnotations(ctMethod, method);
 
-		AnnotationsAttribute attr = new AnnotationsAttribute(constPool, AnnotationsAttribute.visibleTag);
-		attr.addAnnotation(consume);
-		methodInfo.addAttribute(attr);
-	}
-	
-	private void addMethodBody(CtMethod ctMethod, String event) throws CannotCompileException, NotFoundException {
-		String methodBody = 
-				"{ " +
-					"Object id = org.statefulj.framework.binders.camel.CamelBinder.lookupId($1); " +
-					"$proceed(\"" + event + "\", id, new Object[]{$1, $1});" +
-				"}";
+        // Add a RequestMapping annotation
+        //
+        addConsumeAnnotation(ctMethod, event);
 
-		ctMethod.setBody(methodBody, "this." + HARNESS_VAR, "onEvent");
-	}
-	
-	private void addMessageParameter(CtMethod ctMethod, Method method, ClassPool cp) throws NotFoundException, IllegalArgumentException, IllegalAccessException, InvocationTargetException, CannotCompileException {
+        // Clone the parameters, along with the Annotations
+        //
+        addMessageParameter(ctMethod, method, cp);
 
-		// Only one parameter - a message object
-		//
-		Class<?> msgClass = (method != null && method.getParameterTypes().length == 3) ? method.getParameterTypes()[2] : Object.class;
-		CtClass ctParm = cp.get(msgClass.getName());
-		
-		// Add the parameter to the method
-		//
-		ctMethod.addParameter(ctParm);
-	}
-	
+        // Add the Method Body
+        //
+        addMethodBody(ctMethod, event);
+
+        // Add the Method to the Proxy class
+        //
+        camelProxyClass.addMethod(ctMethod);
+    }
+
+    private CtMethod createConsumerMethod(final CtClass camelProxyClass, final String event, final Method method, final ClassPool cp) throws NotFoundException {
+        final String methodName = ("$_" + event.replaceAll("[/:\\.]", "_").replace("{", "").replace("}", "")).toLowerCase();
+
+        CamelBinder.logger.debug("Create method {} for {}", methodName, camelProxyClass.getSimpleName());
+
+        final CtMethod ctMethod = new CtMethod(CtClass.voidType, methodName, null, camelProxyClass);
+        return ctMethod;
+    }
+
+    private void addConsumeAnnotation(final CtMethod ctMethod, final String uri) {
+        final MethodInfo methodInfo = ctMethod.getMethodInfo();
+        final ConstPool constPool = methodInfo.getConstPool();
+
+        final Annotation consume = new Annotation(Consume.class.getName(), constPool);
+        final StringMemberValue valueVal = new StringMemberValue(constPool);
+        valueVal.setValue(uri);
+        consume.addMemberValue("uri", valueVal);
+
+        final AnnotationsAttribute attr = new AnnotationsAttribute(constPool, AnnotationsAttribute.visibleTag);
+        attr.addAnnotation(consume);
+        methodInfo.addAttribute(attr);
+    }
+
+    private void addMethodBody(final CtMethod ctMethod, final String event) throws CannotCompileException, NotFoundException {
+        final String methodBody = "{ " + "Object id = org.statefulj.framework.binders.camel.CamelBinder.lookupId($1); " + "$proceed(\"" + event + "\", id, new Object[]{$1, $1});" + "}";
+
+        ctMethod.setBody(methodBody, "this." + HARNESS_VAR, "onEvent");
+    }
+
+    private void addMessageParameter(final CtMethod ctMethod, final Method method, final ClassPool cp)
+            throws NotFoundException, IllegalArgumentException, IllegalAccessException, InvocationTargetException, CannotCompileException {
+
+        // Only one parameter - a message object
+        //
+        final Class<?> msgClass = ((method != null) && (method.getParameterTypes().length == 3)) ? method.getParameterTypes()[2] : Object.class;
+        final CtClass ctParm = cp.get(msgClass.getName());
+
+        // Add the parameter to the method
+        //
+        ctMethod.addParameter(ctParm);
+    }
+
 }

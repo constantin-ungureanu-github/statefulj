@@ -24,33 +24,34 @@ import javax.persistence.Table;
 import org.statefulj.persistence.jpa.model.StatefulEntity;
 
 @Entity
-@Table(name="EmbeddedOrders")
+@Table(name = "EmbeddedOrders")
 public class EmbeddedOrder extends StatefulEntity {
 
-	@EmbeddedId
-	private EmbeddedOrderId orderId;
+    @EmbeddedId
+    private EmbeddedOrderId orderId;
 
-	private int amount;
-	
-	public EmbeddedOrder() {}
-	
-	public EmbeddedOrder(EmbeddedOrderId orderId) {
-		this.orderId = orderId;
-	}
+    private int amount;
 
-	public EmbeddedOrderId getOrderId() {
-		return orderId;
-	}
+    public EmbeddedOrder() {
+    }
 
-	public void setOrderId(EmbeddedOrderId orderId) {
-		this.orderId = orderId;
-	}
+    public EmbeddedOrder(EmbeddedOrderId orderId) {
+        this.orderId = orderId;
+    }
 
-	public int getAmount() {
-		return amount;
-	}
+    public EmbeddedOrderId getOrderId() {
+        return orderId;
+    }
 
-	public void setAmount(int amount) {
-		this.amount = amount;
-	}
+    public void setOrderId(EmbeddedOrderId orderId) {
+        this.orderId = orderId;
+    }
+
+    public int getAmount() {
+        return amount;
+    }
+
+    public void setAmount(int amount) {
+        this.amount = amount;
+    }
 }

@@ -20,23 +20,26 @@ package org.statefulj.fsm.model;
 import org.statefulj.fsm.RetryException;
 
 /**
- * A Transition is a "reaction" to an Event based off the {@link org.statefulj.fsm.model.State} of the Stateful Entity.
- * It is comprised of an optional next State value and an optional {@link org.statefulj.fsm.model.Action}
+ * A Transition is a "reaction" to an Event based off the {@link org.statefulj.fsm.model.State} of the Stateful Entity. It is comprised of an optional next State value and an optional
+ * {@link org.statefulj.fsm.model.Action}
  *
  * @author Andrew Hall
  *
- * @param <T> The class of the Stateful Entity
+ * @param <T>
+ *            The class of the Stateful Entity
  */
 public interface Transition<T> {
 
-	/**
-	 * Return the {@link org.statefulj.fsm.model.StateActionPair}
-	 *
-	 * @param stateful the Stateful Entity
-	 *
-	 * @return the {@link org.statefulj.fsm.model.StateActionPair}
-	 *
-	 * @throws {@link org.statefulj.fsm.RetryException}
-	 */
-	StateActionPair<T> getStateActionPair(T stateful) throws RetryException;
+    /**
+     * Return the {@link org.statefulj.fsm.model.StateActionPair}
+     *
+     * @param stateful
+     *            the Stateful Entity
+     *
+     * @return the {@link org.statefulj.fsm.model.StateActionPair}
+     *
+     * @throws {@link
+     *             org.statefulj.fsm.RetryException}
+     */
+    StateActionPair<T> getStateActionPair(T stateful) throws RetryException;
 }

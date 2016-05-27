@@ -1,7 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
+	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.statefulj.framework</groupId>
 	<artifactId>statefulj-framework</artifactId>
 	<packaging>pom</packaging>
@@ -9,12 +8,10 @@
 	<parent>
 		<groupId>org.statefulj</groupId>
 		<artifactId>statefulj</artifactId>
-		<version>1.0.12</version>
+		<version>2.0.0</version>
 	</parent>
 
 	<name>statefulj-framework</name>
-	<url>http://www.statefulj.org</url>
-	<description>StatefulJ application framework.  Provides automatic binding of event endpoints with Stateful Controllers</description>
 
 	<properties>
 		<servlet.version>2.5</servlet.version>
@@ -34,7 +31,7 @@
 				<artifactId>statefulj-common</artifactId>
 				<version>${statefulj.version}</version>
 			</dependency>
-			
+
 			<dependency>
 				<groupId>org.statefulj</groupId>
 				<artifactId>statefulj-fsm</artifactId>

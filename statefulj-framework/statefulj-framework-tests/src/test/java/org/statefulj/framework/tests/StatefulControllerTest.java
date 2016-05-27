@@ -1,20 +1,3 @@
-/***
- *
- * Copyright 2014 Andrew Hall
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
 package org.statefulj.framework.tests;
 
 import java.lang.reflect.InvocationTargetException;
@@ -22,24 +5,19 @@ import java.lang.reflect.InvocationTargetException;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
-
+import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.statefulj.common.utils.ReflectionUtils;
 import org.statefulj.framework.core.annotations.FSM;
-import org.statefulj.framework.core.model.ReferenceFactory;
 import org.statefulj.framework.core.model.FSMHarness;
+import org.statefulj.framework.core.model.ReferenceFactory;
 import org.statefulj.framework.core.model.StatefulFSM;
 import org.statefulj.framework.core.model.impl.ReferenceFactoryImpl;
 import org.statefulj.framework.tests.clients.FSMClient1;
@@ -47,313 +25,256 @@ import org.statefulj.framework.tests.clients.FSMClient2;
 import org.statefulj.framework.tests.dao.UserRepository;
 import org.statefulj.framework.tests.model.MemoryObject;
 import org.statefulj.framework.tests.model.User;
-
-import static org.statefulj.framework.tests.utils.ReflectionUtils.*;
-
+import org.statefulj.framework.tests.utils.ReflectionUtils;
 import org.statefulj.fsm.Persister;
 import org.statefulj.fsm.StaleStateException;
 import org.statefulj.fsm.TooBusyException;
 import org.statefulj.fsm.model.State;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration({"/applicationContext-StatefulControllerTests.xml"})
+@ContextConfiguration({ "/applicationContext-StatefulControllerTests.xml" })
 public class StatefulControllerTest {
 
-	@Resource
-	ApplicationContext appContext;
+    @Resource
+    ApplicationContext appContext;
 
-	@Resource
-	UserRepository userRepo;
+    @Resource
+    UserRepository userRepo;
 
-	@Resource
-	JpaTransactionManager transactionManager;
+    @Resource
+    JpaTransactionManager transactionManager;
 
-	@Resource(name="userController.fsmHarness")
-	FSMHarness userFSMHarness;
+    @Resource(name = "userController.fsmHarness")
+    FSMHarness userFSMHarness;
 
-	@FSM("userController")
-	StatefulFSM<User> userFSM;
+    @FSM("userController")
+    StatefulFSM<User> userFSM;
 
-	@FSM("concurrencyController")
-	StatefulFSM<User> concurrencyFSM;
+    @FSM("concurrencyController")
+    StatefulFSM<User> concurrencyFSM;
 
-	@FSM("overloadedMethodController")
-	StatefulFSM<User> overloadFSM;
+    @FSM("overloadedMethodController")
+    StatefulFSM<User> overloadFSM;
 
-	@FSM
-	StatefulFSM<MemoryObject> memoryFSM;
+    @FSM
+    StatefulFSM<MemoryObject> memoryFSM;
 
-	@Resource
-	FSMClient1 fsmClient1;
+    @Resource
+    FSMClient1 fsmClient1;
 
-	@Resource
-	FSMClient2 fsmClient2;
+    @Resource
+    FSMClient2 fsmClient2;
 
-	@Test
-	public void testConstructorInjectionWithDisambiquation() {
-		assertNotNull(fsmClient1.userStatefulFSM);
-	}
+    @Test
+    public void testConstructorInjectionWithDisambiquation() {
+        Assert.assertNotNull(fsmClient1.userStatefulFSM);
+    }
 
-	@Test
-	public void testConstructorInjection() {
-		assertNotNull(fsmClient2.userStatefulFSM);
-		assertNotNull(fsmClient2.memoryObjectStatefulFSM);
-	}
+    @Test
+    public void testConstructorInjection() {
+        Assert.assertNotNull(fsmClient2.userStatefulFSM);
+        Assert.assertNotNull(fsmClient2.memoryObjectStatefulFSM);
+    }
 
-	@Test
-	public void testStateTransitions() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, TooBusyException {
+    @Test
+    public void testStateTransitions() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, TooBusyException {
 
-		assertNotNull(userFSM);
+        Assert.assertNotNull(userFSM);
 
-		ReferenceFactory refFactory = new ReferenceFactoryImpl("userController");
+        final ReferenceFactory refFactory = new ReferenceFactoryImpl("userController");
+        final Object mvcBinder = appContext.getBean(refFactory.getBinderId("springmvc"));
+        final Object jerseyBinder = appContext.getBean(refFactory.getBinderId("jersey"));
+        final Object camelBinder = appContext.getBean(refFactory.getBinderId("camel"));
+        Assert.assertNotNull(mvcBinder);
+        Assert.assertNotNull(camelBinder);
 
-		// Make sure proxy is constructed
-		//
-		Object mvcBinder = this.appContext.getBean(refFactory.getBinderId("springmvc"));
-		Object jerseyBinder = this.appContext.getBean(refFactory.getBinderId("jersey"));
-		Object camelBinder = this.appContext.getBean(refFactory.getBinderId("camel"));
-		assertNotNull(mvcBinder);
-		assertNotNull(camelBinder);
+        final HttpServletRequest context = Mockito.mock(HttpServletRequest.class);
+        User user = ReflectionUtils.invoke(mvcBinder, "$_get_first", User.class, context);
 
-		// Verify new User scenario
-		//
-		HttpServletRequest context = mock(HttpServletRequest.class);
-		User user = invoke(mvcBinder, "$_get_first", User.class, context );
+        Assert.assertNotNull(user);
+        Assert.assertTrue(user.getId() > 0);
+        Assert.assertEquals(User.TWO_STATE, user.getState());
 
-		assertNotNull(user);
-		assertTrue(user.getId() > 0);
-		assertEquals(User.TWO_STATE, user.getState());
+        user = ReflectionUtils.invoke(mvcBinder, "$_get_id_any", User.class, user.getId(), context);
 
-		// Verify "any" scenario
-		//
-		user = invoke(mvcBinder, "$_get_id_any", User.class, user.getId(), context);
+        Assert.assertNotNull(user);
+        Assert.assertTrue(user.getId() > 0);
+        Assert.assertEquals(User.TWO_STATE, user.getState());
 
-		assertNotNull(user);
-		assertTrue(user.getId() > 0);
-		assertEquals(User.TWO_STATE, user.getState());
+        user = ReflectionUtils.invoke(mvcBinder, "$_post_id_second", User.class, user.getId(), context);
 
-		// Verify transition from TWO_STATE to THREE_STATE
-		//
-		user = invoke(mvcBinder, "$_post_id_second", User.class, user.getId(), context);
+        Assert.assertTrue(user.getId() > 0);
+        Assert.assertEquals(User.THREE_STATE, user.getState());
 
-		assertTrue(user.getId() > 0);
-		assertEquals(User.THREE_STATE, user.getState());
+        user = ReflectionUtils.invoke(mvcBinder, "$_get_id_any", User.class, user.getId(), context);
 
-		// Verify "any" scenario
-		//
-		user = invoke(mvcBinder, "$_get_id_any", User.class, user.getId(), context);
+        Assert.assertNotNull(user);
+        Assert.assertTrue(user.getId() > 0);
+        Assert.assertEquals(User.THREE_STATE, user.getState());
 
-		assertNotNull(user);
-		assertTrue(user.getId() > 0);
-		assertEquals(User.THREE_STATE, user.getState());
+        final Object nulObj = ReflectionUtils.invoke(mvcBinder, "$_get_id_four", User.class, user.getId(), context);
 
-		// Verify "any" scenario
-		//
-		Object nulObj = invoke(mvcBinder, "$_get_id_four", User.class, user.getId(), context);
+        Assert.assertNull(nulObj);
+        user = userRepo.findOne(user.getId());
+        Assert.assertEquals(User.FOUR_STATE, user.getState());
 
-		assertNull(nulObj);
-		user = userRepo.findOne(user.getId());
-		assertEquals(User.FOUR_STATE, user.getState());
+        userFSMHarness.onEvent("five", user.getId(), new Object[] { context });
+        user = userRepo.findOne(user.getId());
+        Assert.assertEquals(User.FIVE_STATE, user.getState());
 
-		userFSMHarness.onEvent("five", user.getId(), new Object[]{context});
-		user = userRepo.findOne(user.getId());
-		assertEquals(User.FIVE_STATE, user.getState());
-
-		assertEquals(
-				mvcBinder.getClass().getMethod("$_handleError", Exception.class),
-				ReflectionUtils.getFirstAnnotatedMethod(
-						mvcBinder.getClass(),
-						ExceptionHandler.class));
-
-		String retVal = invoke(mvcBinder, "$_handleError", String.class, new Exception());
-		assertEquals("called", retVal);
-
-		invoke(camelBinder, "$_camelone", user.getId());
-		invoke(camelBinder, "$_six", user.getId());
-		user = userRepo.findOne(user.getId());
-		assertEquals(User.SIX_STATE, user.getState());
-
-		User retUser = invoke(jerseyBinder, "$_get_id_one", User.class, user.getId(), context);
-		assertNotNull(retUser);
-	}
-
-	@Test
-	public void testOverloadedMethod() throws TooBusyException {
-		assertNotNull(overloadFSM);
-
-		User user = new User();
-		String response = (String)overloadFSM.onEvent(user, "one");
-		assertEquals("method1", response);
-
-		response = (String)overloadFSM.onEvent(user, "two", "foo");
-		assertEquals("method2", response);
-
-		response = (String)overloadFSM.onEvent(user, "three", 1);
-		assertEquals("method3", response);
-	}
-
-	@SuppressWarnings("unchecked")
-	@Test(expected=TooBusyException.class)
-	public void testBlockedState() throws TooBusyException, StaleStateException {
-
-		assertNotNull(userFSM);
-
-		ReferenceFactory refFactory = new ReferenceFactoryImpl("userController");
-
-		// Create a User and force it to SIX_STATE
-		//
-		User user = new User();
-		user = userRepo.save(user);
-
-		State<User> stateSix = (State<User>)this.appContext.getBean(refFactory.getStateId(User.SIX_STATE));
-		Persister<User> persister = (Persister<User>)this.appContext.getBean(refFactory.getPersisterId());
-		persister.setCurrent(user, persister.getCurrent(user), stateSix);
-
-		assertEquals(stateSix, persister.getCurrent(user));
-
-		// Now kick off an event, it should block and then eventually throw a TooBusyException
-		//
-		org.statefulj.framework.core.fsm.FSM<User, ?> fsm = (org.statefulj.framework.core.fsm.FSM<User, ?>)this.appContext.getBean(refFactory.getFSMId());
-		fsm.setRetryAttempts(1);
-		fsm.onEvent(user, "block.me");
-	}
-
-	@Test
-	@SuppressWarnings("unchecked")
-	public void testTransitionOutOfBlocking() throws TooBusyException, StaleStateException {
-
-		assertNotNull(userFSM);
-
-		// Create a User and force it to SIX_STATE
-		//
-		final User user = userRepo.save(new User());
-
-		TransactionTemplate tt = new TransactionTemplate(transactionManager);
-		tt.execute(new TransactionCallback<Object>() {
-
-			@Override
-			public Object doInTransaction(TransactionStatus status) {
-				try {
-					ReferenceFactory refFactory = new ReferenceFactoryImpl("userController");
-					User dbUser = userRepo.findOne(user.getId());
-					State<User> stateSix = (State<User>)appContext.getBean(refFactory.getStateId(User.SIX_STATE));
-					Persister<User> persister = (Persister<User>)appContext.getBean(refFactory.getPersisterId());
-					persister.setCurrent(dbUser, persister.getCurrent(user), stateSix);
-
-					// Spawn another Thread
-					//
-					new Thread(new Runnable() {
-
-						@Override
-						public void run() {
-							try {
-								Thread.sleep(1500);
-								TransactionTemplate tt = new TransactionTemplate(transactionManager);
-								tt.execute(new TransactionCallback<Object>() {
-
-									@Override
-									public Object doInTransaction(TransactionStatus status) {
-										try {
-											User dbUser = userRepo.findOne(user.getId());
-											userFSM.onEvent(dbUser, "unblock");
-											return null;
-										} catch (TooBusyException e) {
-											throw new RuntimeException(e);
-										}
-									}
-
-								});
-							} catch (InterruptedException e) {
-								e.printStackTrace();
-							}
-						}
-					}).start();
-
-					userFSM.onEvent(dbUser, "this-should-block");
-					return null;
-				} catch (TooBusyException e) {
-					throw new RuntimeException(e);
-				} catch (StaleStateException e) {
-					throw new RuntimeException(e);
-				}
-			}
-
-		});
-
-		User dbUser = userRepo.findOne(user.getId());
-
-		assertEquals(User.SEVEN_STATE, dbUser.getState());
-	}
-
-	@Test
-	public void testConcurrency() throws TooBusyException, InterruptedException, InstantiationException {
-		User user = userRepo.save(new User());
-		final Long id = user.getId();
-
-		// Spawn another Thread
-		//
-		final Object monitor = new Object();
-		final Thread t = new Thread(new Runnable() {
-
-			@Override
-			public void run() {
-				synchronized(monitor) {
-					TransactionTemplate tt = new TransactionTemplate(transactionManager);
-					tt.execute(new TransactionCallback<Object>() {
-
-						@Override
-						public Object doInTransaction(TransactionStatus status) {
-							try {
-								User user = userRepo.findOne(id);
-								concurrencyFSM.onEvent(user, "two", monitor);
-							} catch(Exception e) {
-								throw new RuntimeException(e);
-							} finally {
-								monitor.notify();
-							}
-							return null;
-						}
-
-					});
-				}
-			}
-		});
-		synchronized(monitor) {
-			TransactionTemplate tt = new TransactionTemplate(transactionManager);
-			tt.execute(new TransactionCallback<Object>() {
-
-				@Override
-				public Object doInTransaction(TransactionStatus status) {
-					t.start();
-					User user = userRepo.findOne(id);
-					try {
-						concurrencyFSM.onEvent(user, "one", monitor);
-					} catch (TooBusyException e) {
-						throw new RuntimeException(e);
-					}
-					return null;
-				}
-
-			});
-		}
-		User user2 = userRepo.findOne(id);
-		assertEquals(User.THREE_STATE, user2.getState());
-	}
-
-	@Test
-	public void testInMemoryController() throws TooBusyException {
-		MemoryObject memObject = new MemoryObject();
-
-		memObject = (MemoryObject)this.memoryFSM.onEvent(memObject, "one");
-
-		assertNotNull(memObject);
-		assertEquals(MemoryObject.TWO_STATE, memObject.getState());
-	}
-
-	@Test(expected=RuntimeException.class)
-	public void testFailedReloadForInMemoryController() throws TooBusyException {
-		MemoryObject memObject = new MemoryObject();
-
-		this.memoryFSM.onEvent(memObject, "fail");
-	}
+        Assert.assertEquals(mvcBinder.getClass().getMethod("$_handleError", Exception.class),
+                org.statefulj.common.utils.ReflectionUtils.getFirstAnnotatedMethod(mvcBinder.getClass(), ExceptionHandler.class));
+
+        final String retVal = ReflectionUtils.invoke(mvcBinder, "$_handleError", String.class, new Exception());
+        Assert.assertEquals("called", retVal);
+
+        ReflectionUtils.invoke(camelBinder, "$_camelone", user.getId());
+        ReflectionUtils.invoke(camelBinder, "$_six", user.getId());
+        user = userRepo.findOne(user.getId());
+        Assert.assertEquals(User.SIX_STATE, user.getState());
+
+        final User retUser = ReflectionUtils.invoke(jerseyBinder, "$_get_id_one", User.class, user.getId(), context);
+        Assert.assertNotNull(retUser);
+    }
+
+    @Test
+    public void testOverloadedMethod() throws TooBusyException {
+        Assert.assertNotNull(overloadFSM);
+
+        final User user = new User();
+        String response = (String) overloadFSM.onEvent(user, "one");
+        Assert.assertEquals("method1", response);
+
+        response = (String) overloadFSM.onEvent(user, "two", "foo");
+        Assert.assertEquals("method2", response);
+
+        response = (String) overloadFSM.onEvent(user, "three", 1);
+        Assert.assertEquals("method3", response);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test(expected = TooBusyException.class)
+    public void testBlockedState() throws TooBusyException, StaleStateException {
+
+        Assert.assertNotNull(userFSM);
+
+        final ReferenceFactory refFactory = new ReferenceFactoryImpl("userController");
+
+        User user = new User();
+        user = userRepo.save(user);
+
+        final State<User> stateSix = (State<User>) appContext.getBean(refFactory.getStateId(User.SIX_STATE));
+        final Persister<User> persister = (Persister<User>) appContext.getBean(refFactory.getPersisterId());
+        persister.setCurrent(user, persister.getCurrent(user), stateSix);
+
+        Assert.assertEquals(stateSix, persister.getCurrent(user));
+
+        final org.statefulj.framework.core.fsm.FSM<User, ?> fsm = (org.statefulj.framework.core.fsm.FSM<User, ?>) appContext.getBean(refFactory.getFSMId());
+        fsm.setRetryAttempts(1);
+        fsm.onEvent(user, "block.me");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testTransitionOutOfBlocking() throws TooBusyException, StaleStateException {
+
+        Assert.assertNotNull(userFSM);
+
+        final User user = userRepo.save(new User());
+        final TransactionTemplate tt = new TransactionTemplate(transactionManager);
+        tt.execute(status -> {
+            try {
+                final ReferenceFactory refFactory = new ReferenceFactoryImpl("userController");
+                final User dbUser = userRepo.findOne(user.getId());
+                final State<User> stateSix = (State<User>) appContext.getBean(refFactory.getStateId(User.SIX_STATE));
+                final Persister<User> persister = (Persister<User>) appContext.getBean(refFactory.getPersisterId());
+                persister.setCurrent(dbUser, persister.getCurrent(user), stateSix);
+
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(1500);
+                        final TransactionTemplate tt1 = new TransactionTemplate(transactionManager);
+                        tt1.execute(status1 -> {
+                            try {
+                                final User dbUser1 = userRepo.findOne(user.getId());
+                                userFSM.onEvent(dbUser1, "unblock");
+                                return null;
+                            } catch (final TooBusyException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                    } catch (final InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+
+                userFSM.onEvent(dbUser, "this-should-block");
+                return null;
+            } catch (final TooBusyException e1) {
+                throw new RuntimeException(e1);
+            } catch (final StaleStateException e2) {
+                throw new RuntimeException(e2);
+            }
+        });
+
+        final User dbUser = userRepo.findOne(user.getId());
+
+        Assert.assertEquals(User.SEVEN_STATE, dbUser.getState());
+    }
+
+    @Test
+    public void testConcurrency() throws TooBusyException, InterruptedException, InstantiationException {
+        final User user = userRepo.save(new User());
+        final Long id = user.getId();
+
+        final Object monitor = new Object();
+        final Thread t = new Thread(() -> {
+            synchronized (monitor) {
+                final TransactionTemplate tt = new TransactionTemplate(transactionManager);
+                tt.execute(status -> {
+                    try {
+                        final User user1 = userRepo.findOne(id);
+                        concurrencyFSM.onEvent(user1, "two", monitor);
+                    } catch (final Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        monitor.notify();
+                    }
+                    return null;
+                });
+            }
+        });
+        synchronized (monitor) {
+            final TransactionTemplate tt = new TransactionTemplate(transactionManager);
+            tt.execute(status -> {
+                t.start();
+                final User user1 = userRepo.findOne(id);
+                try {
+                    concurrencyFSM.onEvent(user1, "one", monitor);
+                } catch (final TooBusyException e) {
+                    throw new RuntimeException(e);
+                }
+                return null;
+            });
+        }
+        final User user2 = userRepo.findOne(id);
+        Assert.assertEquals(User.THREE_STATE, user2.getState());
+    }
+
+    @Test
+    public void testInMemoryController() throws TooBusyException {
+        MemoryObject memObject = new MemoryObject();
+
+        memObject = (MemoryObject) memoryFSM.onEvent(memObject, "one");
+
+        Assert.assertNotNull(memObject);
+        Assert.assertEquals(MemoryObject.TWO_STATE, memObject.getState());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testFailedReloadForInMemoryController() throws TooBusyException {
+        final MemoryObject memObject = new MemoryObject();
+
+        memoryFSM.onEvent(memObject, "fail");
+    }
 }

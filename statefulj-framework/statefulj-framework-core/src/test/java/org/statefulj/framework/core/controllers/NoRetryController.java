@@ -20,15 +20,10 @@ package org.statefulj.framework.core.controllers;
 import org.statefulj.framework.core.annotations.StatefulController;
 import org.statefulj.framework.core.model.User;
 
-@StatefulController(
-	clazz=User.class, 
-	startState=NoRetryController.ONE_STATE,
-	retryAttempts=1,
-	retryInterval=1
-)
+@StatefulController(clazz = User.class, startState = NoRetryController.ONE_STATE, retryAttempts = 1, retryInterval = 1)
 public class NoRetryController {
-	
-	// States
-	//
-	public static final String ONE_STATE = "one";
+
+    // States
+    //
+    public static final String ONE_STATE = "one";
 }

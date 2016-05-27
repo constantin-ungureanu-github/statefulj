@@ -17,6 +17,9 @@
  */
 package org.statefulj.common.utils;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -25,38 +28,36 @@ import java.lang.reflect.Field;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 public class ReflectionUtilsTest {
-	
-	@Target({ElementType.FIELD, ElementType.METHOD})
-	@Retention(RetentionPolicy.RUNTIME)
-	@interface Bar {
-		
-		public String value() default "";
-		
-	}	
-	
-	@Test
-	public void testFieldFromGetter() {
-		
-		class Foo {
 
-			String foo = "boo";
+    @Target({ ElementType.FIELD, ElementType.METHOD })
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface Bar {
 
-			@Bar
-			public String getFoo() {
-				return foo;
-			}
+        public String value() default "";
 
-			@SuppressWarnings("unused")
-			public void setFoo(String foo) {
-				this.foo = foo;
-			}
-		}
-		
-		Field foo = ReflectionUtils.getReferencedField(Foo.class, Bar.class);
-		assertNotNull(foo);
-		assertEquals("foo", foo.getName());
-	}
+    }
+
+    @Test
+    public void testFieldFromGetter() {
+
+        class Foo {
+
+            String foo = "boo";
+
+            @Bar
+            public String getFoo() {
+                return foo;
+            }
+
+            @SuppressWarnings("unused")
+            public void setFoo(String foo) {
+                this.foo = foo;
+            }
+        }
+
+        Field foo = ReflectionUtils.getReferencedField(Foo.class, Bar.class);
+        assertNotNull(foo);
+        assertEquals("foo", foo.getName());
+    }
 }

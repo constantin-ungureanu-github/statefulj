@@ -34,180 +34,156 @@ import org.statefulj.fsm.model.StateActionPair;
 import org.statefulj.fsm.model.Transition;
 
 /**
- * The Framework FSM.  The Framework FSM is responsible to extending the {@link org.statefulj.fsm.FSM}
- * to provide ability to autowire and reload Stateful Entities 
+ * The Framework FSM. The Framework FSM is responsible to extending the {@link org.statefulj.fsm.FSM} to provide ability to autowire and reload Stateful Entities
  * 
  * @author Andrew Hall
  *
- * @param <T> The Stateful Entity Type
- * @param <CT> The Context Type
+ * @param <T>
+ *            The Stateful Entity Type
+ * @param <CT>
+ *            The Context Type
  */
 public class FSM<T, CT> extends org.statefulj.fsm.FSM<T> {
-	
-	private static final Logger logger = LoggerFactory.getLogger(FSM.class);
 
-	private Finder<T, CT> finder = null;
+    private static final Logger logger = LoggerFactory.getLogger(FSM.class);
 
-	private Class<T> clazz = null;
-	
-	private Class<? extends Annotation> idType = null;
-	
-	private ApplicationContext appContext;
-	
-	public FSM(
-			String name, 
-			Persister<T> persister, 
-			int retryAttempts, 
-			int retryInterval, 
-			Class<T> clazz, 
-			Class<? extends Annotation> idType,
-			ApplicationContext applicationContext,
-			Finder<T, CT> finder) {
-		this(name, persister, retryAttempts, retryInterval, clazz, idType, applicationContext);
-		this.finder = finder;
-	}
+    private Finder<T, CT> finder = null;
 
-	public FSM(
-			String name, 
-			Persister<T> persister, 
-			int retryAttempts, 
-			int retryInterval, 
-			Class<T> clazz, 
-			Class<? extends Annotation> idType,
-			ApplicationContext applicationContext) {
-		super(name, persister, retryAttempts, retryInterval);
-		this.idType = idType;
-		this.clazz = clazz;
-		this.appContext = applicationContext;
-	}
+    private Class<T> clazz = null;
 
-	@Override
-	public State<T> onEvent(T stateful, String event, Object... parms)  throws TooBusyException {
-		autowire(stateful);
-		return super.onEvent(stateful, event, parms);
-	}
+    private Class<? extends Annotation> idType = null;
 
-	@Override
-	protected State<T> transition(T stateful, State<T> current, String event, Transition<T> t, Object... args) throws RetryException {
-		
-		TransitionImpl<T> transition = (TransitionImpl<T>)t;
-		StateActionPair<T> pair = transition.getStateActionPair(stateful);
-		
-		// If this transition is applicable to every state and doesn't cause a State change, don't bother
-		// with setting the current state
-		//
-		if (!transition.isAny()) {
-			setCurrent(stateful, current, pair.getState());
-		}
-		
-		// Reloading MUST happen after we successful set the current state
-		//
-		if (transition.isReload()) {
-			stateful = reload(stateful, event, args);
-			autowire(stateful);
-		}
-		
-		executeAction(
-				pair.getAction(), 
-				stateful, 
-				event,
-				current.getName(),
-				pair.getState().getName(),
-				args);
-		
-		return pair.getState();
-	}
-	
-	private void autowire(T stateful) {
-		// Autowire instantiated object 
-		// TODO: Make this configurable - if using @Configurable - then this isn't necessary
-		//
-		this.appContext.getAutowireCapableBeanFactory().autowireBeanProperties(
-				stateful,
-			    AutowireCapableBeanFactory.AUTOWIRE_NO, 
-			    false);
-	}
-	
-	private T reload(T stateful, String event, Object... args) {
-		
-		if (this.finder == null) {
-			throw new RuntimeException(
-					"Reloading is not supported without a valid Finder.  " +
-					"Ensure that there is a Repository for " + 
-					this.clazz.getName() + " or provide a finderId in the StateController annotation");
-		}
-		
-		T retVal = null;
-		
-		// Pull out the Context if available
-		//
-		CT context = getContext(args);
-		
-		// Fetch the ID value from the StatefulEntity
-		//
-		Object id = getId(stateful);
-		
-		// Get a fresh copy of the StatefulEntity
-		//
-		retVal = findStatefulEntity(event, context, id);
-		
-		// If we fetched a fresh instance, return it.  Otherwise,
-		// return the current StatefulEntity.  Never pass back a null value
-		//
-		return (retVal != null) ? retVal : stateful;
-	}
+    private ApplicationContext appContext;
 
-	/**
-	 * @param event
-	 * @param context
-	 * @param id
-	 * @return
-	 */
-	private T findStatefulEntity(String event, CT context, Object id) {
-		T retVal;
-		if (id == null) {
-			retVal = this.finder.find(clazz, event, context);
-		} else {
-			retVal = this.finder.find(clazz, id, event, context);
-		}
-		return retVal;
-	}
+    public FSM(String name, Persister<T> persister, int retryAttempts, int retryInterval, Class<T> clazz, Class<? extends Annotation> idType, ApplicationContext applicationContext,
+            Finder<T, CT> finder) {
+        this(name, persister, retryAttempts, retryInterval, clazz, idType, applicationContext);
+        this.finder = finder;
+    }
 
-	/**
-	 * @param context
-	 * @param args
-	 * @return
-	 */
-	@SuppressWarnings("unchecked")
-	private CT getContext(Object... args) {
-		CT context = null;
-		if (args.length > 0 && (args[0] instanceof ContextWrapper<?>)) {
-			ContextWrapper<CT> retryParms = (ContextWrapper<CT>)args[0];
-			context = retryParms.getContext();
-		}
-		return context;
-	}
+    public FSM(String name, Persister<T> persister, int retryAttempts, int retryInterval, Class<T> clazz, Class<? extends Annotation> idType, ApplicationContext applicationContext) {
+        super(name, persister, retryAttempts, retryInterval);
+        this.idType = idType;
+        this.clazz = clazz;
+        this.appContext = applicationContext;
+    }
 
-	/**
-	 * @param stateful
-	 * @param id
-	 * @return
-	 */
-	private Object getId(T stateful) {
-		Object id = null;
-		if (this.idType != null) {
-			Field idField = ReflectionUtils.getReferencedField(stateful.getClass(), this.idType);
-			if (idField != null) {
-				idField.setAccessible(true);
-				try {
-					id = idField.get(stateful);
-				} catch (IllegalArgumentException e) {
-					logger.warn("Unable to locate id field for " + stateful);
-				} catch (IllegalAccessException e) {
-					logger.warn("Unable to locate id field for " + stateful);
-				}
-			}
-		}
-		return id;
-	}
+    @Override
+    public State<T> onEvent(T stateful, String event, Object... parms) throws TooBusyException {
+        autowire(stateful);
+        return super.onEvent(stateful, event, parms);
+    }
+
+    @Override
+    protected State<T> transition(T stateful, State<T> current, String event, Transition<T> t, Object... args) throws RetryException {
+
+        TransitionImpl<T> transition = (TransitionImpl<T>) t;
+        StateActionPair<T> pair = transition.getStateActionPair(stateful);
+
+        // If this transition is applicable to every state and doesn't cause a State change, don't bother
+        // with setting the current state
+        //
+        if (!transition.isAny()) {
+            setCurrent(stateful, current, pair.getState());
+        }
+
+        // Reloading MUST happen after we successful set the current state
+        //
+        if (transition.isReload()) {
+            stateful = reload(stateful, event, args);
+            autowire(stateful);
+        }
+
+        executeAction(pair.getAction(), stateful, event, current.getName(), pair.getState().getName(), args);
+
+        return pair.getState();
+    }
+
+    private void autowire(T stateful) {
+        // Autowire instantiated object
+        // TODO: Make this configurable - if using @Configurable - then this isn't necessary
+        //
+        this.appContext.getAutowireCapableBeanFactory().autowireBeanProperties(stateful, AutowireCapableBeanFactory.AUTOWIRE_NO, false);
+    }
+
+    private T reload(T stateful, String event, Object... args) {
+
+        if (this.finder == null) {
+            throw new RuntimeException("Reloading is not supported without a valid Finder.  " + "Ensure that there is a Repository for " + this.clazz.getName()
+                    + " or provide a finderId in the StateController annotation");
+        }
+
+        T retVal = null;
+
+        // Pull out the Context if available
+        //
+        CT context = getContext(args);
+
+        // Fetch the ID value from the StatefulEntity
+        //
+        Object id = getId(stateful);
+
+        // Get a fresh copy of the StatefulEntity
+        //
+        retVal = findStatefulEntity(event, context, id);
+
+        // If we fetched a fresh instance, return it. Otherwise,
+        // return the current StatefulEntity. Never pass back a null value
+        //
+        return (retVal != null) ? retVal : stateful;
+    }
+
+    /**
+     * @param event
+     * @param context
+     * @param id
+     * @return
+     */
+    private T findStatefulEntity(String event, CT context, Object id) {
+        T retVal;
+        if (id == null) {
+            retVal = this.finder.find(clazz, event, context);
+        } else {
+            retVal = this.finder.find(clazz, id, event, context);
+        }
+        return retVal;
+    }
+
+    /**
+     * @param context
+     * @param args
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    private CT getContext(Object... args) {
+        CT context = null;
+        if (args.length > 0 && (args[0] instanceof ContextWrapper<?>)) {
+            ContextWrapper<CT> retryParms = (ContextWrapper<CT>) args[0];
+            context = retryParms.getContext();
+        }
+        return context;
+    }
+
+    /**
+     * @param stateful
+     * @param id
+     * @return
+     */
+    private Object getId(T stateful) {
+        Object id = null;
+        if (this.idType != null) {
+            Field idField = ReflectionUtils.getReferencedField(stateful.getClass(), this.idType);
+            if (idField != null) {
+                idField.setAccessible(true);
+                try {
+                    id = idField.get(stateful);
+                } catch (IllegalArgumentException e) {
+                    logger.warn("Unable to locate id field for " + stateful);
+                } catch (IllegalAccessException e) {
+                    logger.warn("Unable to locate id field for " + stateful);
+                }
+            }
+        }
+        return id;
+    }
 }

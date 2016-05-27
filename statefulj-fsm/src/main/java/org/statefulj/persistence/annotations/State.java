@@ -24,12 +24,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * Indicates that the field contains the State value.  The State value is typically a String.  
+ * Indicates that the field contains the State value. The State value is typically a String.
  * 
  * @author Andrew Hall
  *
  */
-@Target({FIELD})
+@Target({ FIELD })
 @Retention(RUNTIME)
 public @interface State {
 
