@@ -8,9 +8,8 @@ import org.statefulj.fsm.model.State;
 import org.statefulj.fsm.model.Transition;
 
 public class StateImpl<T> implements State<T> {
-
     private String name;
-    private Map<String, Transition<T>> transitions = new HashMap<String, Transition<T>>();
+    private Map<String, Transition<T>> transitions = new HashMap<>();
     boolean isEndState = false;
     boolean isBlocking = false;
 
@@ -44,6 +43,7 @@ public class StateImpl<T> implements State<T> {
         this.isBlocking = isBlocking;
     }
 
+    @Override
     public String getName() {
         return name;
     }
@@ -52,6 +52,7 @@ public class StateImpl<T> implements State<T> {
         this.name = name;
     }
 
+    @Override
     public Transition<T> getTransition(final String event) {
         return transitions.get(event);
     }
@@ -64,6 +65,7 @@ public class StateImpl<T> implements State<T> {
         this.transitions = transitions;
     }
 
+    @Override
     public boolean isEndState() {
         return isEndState;
     }
@@ -72,26 +74,32 @@ public class StateImpl<T> implements State<T> {
         this.isEndState = isEndState;
     }
 
+    @Override
     public void addTransition(final String event, final State<T> next) {
-        this.transitions.put(event, new DeterministicTransitionImpl<T>(next, null));
+        this.transitions.put(event, new DeterministicTransitionImpl<>(next, null));
     }
 
+    @Override
     public void addTransition(final String event, final State<T> next, final Action<T> action) {
-        this.transitions.put(event, new DeterministicTransitionImpl<T>(next, action));
+        this.transitions.put(event, new DeterministicTransitionImpl<>(next, action));
     }
 
+    @Override
     public void addTransition(final String event, final Transition<T> transition) {
         this.transitions.put(event, transition);
     }
 
+    @Override
     public void removeTransition(final String event) {
         this.transitions.remove(event);
     }
 
+    @Override
     public void setBlocking(final boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
 
+    @Override
     public boolean isBlocking() {
         return this.isBlocking;
     }

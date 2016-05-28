@@ -36,6 +36,7 @@ import javassist.bytecode.annotation.StringMemberValue;
 
 public abstract class AbstractRestfulBinder implements EndpointBinder {
     private static final Logger logger = LoggerFactory.getLogger(AbstractRestfulBinder.class);
+
     private final Pattern methodPattern = Pattern.compile("(([^:]*):)?(.*)");
     private final String HARNESS_VAR = "harness";
     private final String GET = "GET";
@@ -177,16 +178,9 @@ public abstract class AbstractRestfulBinder implements EndpointBinder {
     }
 
     protected Annotation[] addHttpRequestParameter(final CtMethod ctMethod, final ClassPool cp) throws NotFoundException, CannotCompileException {
-        // Map the HttpServletRequest class
-        //
         final CtClass ctParm = cp.get(HttpServletRequest.class.getName());
-
-        // Add the parameter to the method
-        //
         ctMethod.addParameter(ctParm);
-
         return new Annotation[] {};
-
     }
 
     protected Pair<String, String> parseMethod(final String event) {

@@ -12,11 +12,6 @@
         <version>2.0.0</version>
     </parent>
 
-	<properties>
-		<spring.version>4.0.6.RELEASE</spring.version>
-		<spring.data.version>1.6.2.RELEASE</spring.data.version>
-	</properties>
-
     <modules>
         <module>statefulj-persistence-common</module>
         <module>statefulj-persistence-jpa</module>
@@ -24,51 +19,32 @@
 
 	<dependencyManagement>
 		<dependencies>
-
 			<dependency>
 				<groupId>org.statefulj</groupId>
 				<artifactId>statefulj-common</artifactId>
 				<version>${statefulj.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.statefulj</groupId>
 				<artifactId>statefulj-fsm</artifactId>
 				<version>${statefulj.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.statefulj.persistence</groupId>
 				<artifactId>statefulj-persistence-common</artifactId>
 				<version>${statefulj.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-context</artifactId>
 				<version>${spring.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-test</artifactId>
 				<version>${spring.version}</version>
 				<scope>test</scope>
 			</dependency>
-
 		</dependencies>
 	</dependencyManagement>
-
-	<build>
-		<plugins>
-			<plugin>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>${version.maven.surefire.plugin}</version>
-				<configuration>
-					<reuseForks>false</reuseForks>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
-
 </project>

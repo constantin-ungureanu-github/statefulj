@@ -4,19 +4,20 @@
 	<groupId>org.statefulj.framework</groupId>
 	<artifactId>statefulj-framework</artifactId>
 	<packaging>pom</packaging>
-
-	<parent>
-		<groupId>org.statefulj</groupId>
-		<artifactId>statefulj</artifactId>
-		<version>2.0.0</version>
-	</parent>
-
 	<name>statefulj-framework</name>
 
-	<properties>
-		<servlet.version>2.5</servlet.version>
-		<spring.version>4.0.6.RELEASE</spring.version>
-	</properties>
+    <parent>
+        <groupId>org.statefulj</groupId>
+        <artifactId>statefulj</artifactId>
+        <version>2.0.0</version>
+    </parent>
+
+    <modules>
+        <module>statefulj-framework-core</module>
+        <module>statefulj-framework-binders</module>
+        <module>statefulj-framework-persistence</module>
+        <module>statefulj-framework-tests</module>
+    </modules>
 
 	<dependencyManagement>
 		<dependencies>
@@ -25,45 +26,33 @@
 				<artifactId>servlet-api</artifactId>
 				<version>${servlet.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.statefulj</groupId>
 				<artifactId>statefulj-common</artifactId>
 				<version>${statefulj.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.statefulj</groupId>
 				<artifactId>statefulj-fsm</artifactId>
 				<version>${statefulj.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.statefulj.persistence</groupId>
 				<artifactId>statefulj-persistence-common</artifactId>
 				<version>${statefulj.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-context</artifactId>
 				<version>${spring.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-test</artifactId>
 				<version>${spring.version}</version>
 				<scope>test</scope>
 			</dependency>
-
 		</dependencies>
 	</dependencyManagement>
 
-	<modules>
-		<module>statefulj-framework-core</module>
-		<module>statefulj-framework-binders</module>
-		<module>statefulj-framework-persistence</module>
-		<module>statefulj-framework-tests</module>
-	</modules>
 </project>

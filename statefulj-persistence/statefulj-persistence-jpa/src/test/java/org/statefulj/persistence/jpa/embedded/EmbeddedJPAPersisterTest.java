@@ -1,20 +1,3 @@
-/***
- * 
- * Copyright 2014 Andrew Hall
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
- */
 package org.statefulj.persistence.jpa.embedded;
 
 import static org.junit.Assert.assertEquals;
@@ -60,19 +43,15 @@ public class EmbeddedJPAPersisterTest {
     public void testValidStateChange() throws StaleStateException, IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
         UnitTestUtils.startTransaction(transactionManager);
 
-        // Verify that a new Order without a state set, we return the Start State
-        //
         EmbeddedOrderId id = new EmbeddedOrderId();
         id.setId(1L);
         EmbeddedOrder order = new EmbeddedOrder(id);
         order.setAmount(20);
-        order = this.embeddedOrderRepo.save(order);
+        order = embeddedOrderRepo.save(order);
 
         State<EmbeddedOrder> currentState = embeddedJPAPersister.getCurrent(order);
         assertEquals(stateA, currentState);
 
-        // Verify that qualified a change in state works
-        //
         embeddedJPAPersister.setCurrent(order, stateA, stateB);
         assertEquals(order.getState(), stateB.getName());
 
@@ -85,28 +64,26 @@ public class EmbeddedJPAPersisterTest {
         dbOrder = embeddedOrderRepo.findOne(order.getOrderId());
         assertEquals(order.getState(), dbOrder.getState());
 
-        // Verify that updating the state without going through the Persister doesn't wok
-        //
         id = new EmbeddedOrderId();
         id.setId(2L);
         order = new EmbeddedOrder(id);
         embeddedJPAPersister.setCurrent(order, stateA, stateB);
-        order = this.embeddedOrderRepo.save(order);
+        order = embeddedOrderRepo.save(order);
 
         dbOrder = embeddedOrderRepo.findOne(order.getOrderId());
         currentState = embeddedJPAPersister.getCurrent(dbOrder);
         assertEquals(stateB, currentState);
 
-        Field stateField = StatefulEntity.class.getDeclaredField("state");
+        final Field stateField = StatefulEntity.class.getDeclaredField("state");
         stateField.setAccessible(true);
         stateField.set(dbOrder, "stateD");
         dbOrder.setAmount(100);
-        this.embeddedOrderRepo.save(dbOrder);
+        embeddedOrderRepo.save(dbOrder);
 
         UnitTestUtils.commitTransaction(transactionManager);
         UnitTestUtils.startTransaction(transactionManager);
 
-        dbOrder = this.embeddedOrderRepo.findOne(dbOrder.getOrderId());
+        dbOrder = embeddedOrderRepo.findOne(dbOrder.getOrderId());
         currentState = embeddedJPAPersister.getCurrent(dbOrder);
         assertEquals(stateB.getName(), currentState.getName());
         assertEquals(100, dbOrder.getAmount());
@@ -117,13 +94,13 @@ public class EmbeddedJPAPersisterTest {
     @Test(expected = StaleStateException.class)
     public void testInvalidStateChange() throws StaleStateException {
         UnitTestUtils.startTransaction(transactionManager);
-        EmbeddedOrderId id = new EmbeddedOrderId();
+        final EmbeddedOrderId id = new EmbeddedOrderId();
         id.setId(1L);
-        EmbeddedOrder order = new EmbeddedOrder(id);
+        final EmbeddedOrder order = new EmbeddedOrder(id);
         order.setAmount(20);
         embeddedOrderRepo.save(order);
 
-        State<EmbeddedOrder> currentState = embeddedJPAPersister.getCurrent(order);
+        final State<EmbeddedOrder> currentState = embeddedJPAPersister.getCurrent(order);
         assertEquals(stateA, currentState);
 
         embeddedJPAPersister.setCurrent(order, stateB, stateC);

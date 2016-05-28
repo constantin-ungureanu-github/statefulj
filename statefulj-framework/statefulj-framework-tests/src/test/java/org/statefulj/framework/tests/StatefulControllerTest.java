@@ -13,7 +13,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.statefulj.framework.core.annotations.FSM;
 import org.statefulj.framework.core.model.FSMHarness;
@@ -34,7 +33,6 @@ import org.statefulj.fsm.model.State;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration({ "/applicationContext-StatefulControllerTests.xml" })
 public class StatefulControllerTest {
-
     @Resource
     ApplicationContext appContext;
 
@@ -77,8 +75,22 @@ public class StatefulControllerTest {
     }
 
     @Test
-    public void testStateTransitions() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, TooBusyException {
+    public void testInMemoryController() throws TooBusyException {
+        MemoryObject memObject = new MemoryObject();
+        memObject = (MemoryObject) memoryFSM.onEvent(memObject, "one");
 
+        Assert.assertNotNull(memObject);
+        Assert.assertEquals(MemoryObject.TWO_STATE, memObject.getState());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testFailedReloadForInMemoryController() throws TooBusyException {
+        final MemoryObject memObject = new MemoryObject();
+        memoryFSM.onEvent(memObject, "fail");
+    }
+
+    @Test
+    public void testStateTransitions() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, TooBusyException {
         Assert.assertNotNull(userFSM);
 
         final ReferenceFactory refFactory = new ReferenceFactoryImpl("userController");
@@ -155,9 +167,7 @@ public class StatefulControllerTest {
     @SuppressWarnings("unchecked")
     @Test(expected = TooBusyException.class)
     public void testBlockedState() throws TooBusyException, StaleStateException {
-
         Assert.assertNotNull(userFSM);
-
         final ReferenceFactory refFactory = new ReferenceFactoryImpl("userController");
 
         User user = new User();
@@ -168,113 +178,8 @@ public class StatefulControllerTest {
         persister.setCurrent(user, persister.getCurrent(user), stateSix);
 
         Assert.assertEquals(stateSix, persister.getCurrent(user));
-
         final org.statefulj.framework.core.fsm.FSM<User, ?> fsm = (org.statefulj.framework.core.fsm.FSM<User, ?>) appContext.getBean(refFactory.getFSMId());
         fsm.setRetryAttempts(1);
         fsm.onEvent(user, "block.me");
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void testTransitionOutOfBlocking() throws TooBusyException, StaleStateException {
-
-        Assert.assertNotNull(userFSM);
-
-        final User user = userRepo.save(new User());
-        final TransactionTemplate tt = new TransactionTemplate(transactionManager);
-        tt.execute(status -> {
-            try {
-                final ReferenceFactory refFactory = new ReferenceFactoryImpl("userController");
-                final User dbUser = userRepo.findOne(user.getId());
-                final State<User> stateSix = (State<User>) appContext.getBean(refFactory.getStateId(User.SIX_STATE));
-                final Persister<User> persister = (Persister<User>) appContext.getBean(refFactory.getPersisterId());
-                persister.setCurrent(dbUser, persister.getCurrent(user), stateSix);
-
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(1500);
-                        final TransactionTemplate tt1 = new TransactionTemplate(transactionManager);
-                        tt1.execute(status1 -> {
-                            try {
-                                final User dbUser1 = userRepo.findOne(user.getId());
-                                userFSM.onEvent(dbUser1, "unblock");
-                                return null;
-                            } catch (final TooBusyException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
-                    } catch (final InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }).start();
-
-                userFSM.onEvent(dbUser, "this-should-block");
-                return null;
-            } catch (final TooBusyException e1) {
-                throw new RuntimeException(e1);
-            } catch (final StaleStateException e2) {
-                throw new RuntimeException(e2);
-            }
-        });
-
-        final User dbUser = userRepo.findOne(user.getId());
-
-        Assert.assertEquals(User.SEVEN_STATE, dbUser.getState());
-    }
-
-    @Test
-    public void testConcurrency() throws TooBusyException, InterruptedException, InstantiationException {
-        final User user = userRepo.save(new User());
-        final Long id = user.getId();
-
-        final Object monitor = new Object();
-        final Thread t = new Thread(() -> {
-            synchronized (monitor) {
-                final TransactionTemplate tt = new TransactionTemplate(transactionManager);
-                tt.execute(status -> {
-                    try {
-                        final User user1 = userRepo.findOne(id);
-                        concurrencyFSM.onEvent(user1, "two", monitor);
-                    } catch (final Exception e) {
-                        throw new RuntimeException(e);
-                    } finally {
-                        monitor.notify();
-                    }
-                    return null;
-                });
-            }
-        });
-        synchronized (monitor) {
-            final TransactionTemplate tt = new TransactionTemplate(transactionManager);
-            tt.execute(status -> {
-                t.start();
-                final User user1 = userRepo.findOne(id);
-                try {
-                    concurrencyFSM.onEvent(user1, "one", monitor);
-                } catch (final TooBusyException e) {
-                    throw new RuntimeException(e);
-                }
-                return null;
-            });
-        }
-        final User user2 = userRepo.findOne(id);
-        Assert.assertEquals(User.THREE_STATE, user2.getState());
-    }
-
-    @Test
-    public void testInMemoryController() throws TooBusyException {
-        MemoryObject memObject = new MemoryObject();
-
-        memObject = (MemoryObject) memoryFSM.onEvent(memObject, "one");
-
-        Assert.assertNotNull(memObject);
-        Assert.assertEquals(MemoryObject.TWO_STATE, memObject.getState());
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void testFailedReloadForInMemoryController() throws TooBusyException {
-        final MemoryObject memObject = new MemoryObject();
-
-        memoryFSM.onEvent(memObject, "fail");
     }
 }

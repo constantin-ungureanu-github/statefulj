@@ -1,20 +1,3 @@
-/***
- * 
- * Copyright 2014 Andrew Hall
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * 
- */
 package org.statefulj.framework.tests.utils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -26,36 +9,37 @@ import javax.servlet.http.HttpServletRequest;
 public class ReflectionUtils {
 
     @SuppressWarnings("unchecked")
-    public static <T> T invoke(Object obj, String methodName, Class<T> returnType, Object... parms)
+    public static <T> T invoke(final Object obj, final String methodName, final Class<T> returnType, final Object... parms)
             throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        ArrayList<Class<?>> parmClasses = new ArrayList<Class<?>>();
-        for (Object parm : parms) {
+        final ArrayList<Class<?>> parmClasses = new ArrayList<>();
+        for (final Object parm : parms) {
             if (HttpServletRequest.class.isAssignableFrom(parm.getClass())) {
                 parmClasses.add(HttpServletRequest.class);
             } else {
                 parmClasses.add(parm.getClass());
             }
         }
-        Method method = obj.getClass().getDeclaredMethod(methodName, parmClasses.toArray(new Class<?>[] {}));
+        final Method method = obj.getClass().getDeclaredMethod(methodName, parmClasses.toArray(new Class<?>[] {}));
         return (T) method.invoke(obj, parms);
     }
 
-    public static void invoke(Object obj, String methodName, Object... parms)
+    public static void invoke(final Object obj, final String methodName, final Object... parms)
             throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        ArrayList<Class<?>> parmClasses = new ArrayList<Class<?>>();
-        for (Object parm : parms) {
+        final ArrayList<Class<?>> parmClasses = new ArrayList<>();
+        for (final Object parm : parms) {
             if (HttpServletRequest.class.isAssignableFrom(parm.getClass())) {
                 parmClasses.add(HttpServletRequest.class);
             } else {
                 parmClasses.add(parm.getClass());
             }
         }
+
         Method method = null;
         for (Method m : obj.getClass().getDeclaredMethods()) {
-            if (m.getName().equals(methodName) && m.getParameterTypes().length == parmClasses.size()) {
+            if (m.getName().equals(methodName) && (m.getParameterTypes().length == parmClasses.size())) {
                 method = m;
                 int i = 0;
-                for (Class<?> parmClass : m.getParameterTypes()) {
+                for (final Class<?> parmClass : m.getParameterTypes()) {
                     if (!parmClass.isAssignableFrom(parmClasses.get(i))) {
                         m = null;
                         break;

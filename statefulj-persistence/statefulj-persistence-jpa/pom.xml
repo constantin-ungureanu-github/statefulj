@@ -12,23 +12,15 @@
 		<version>2.0.0</version>
 	</parent>
 
-	<properties>
-		<hibernate.version>4.3.5.Final</hibernate.version>
-		<javax.api.version>1.2</javax.api.version>
-		<hsql.version>1.8.0.10</hsql.version>
-	</properties>
-
 	<dependencies>
 		<dependency>
 			<groupId>org.statefulj.persistence</groupId>
 			<artifactId>statefulj-persistence-common</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.data</groupId>
 			<artifactId>spring-data-jpa</artifactId>
@@ -52,7 +44,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-entitymanager</artifactId>
@@ -81,29 +72,25 @@
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
-			<artifactId>mockito-all</artifactId>
+			<artifactId>mockito-core</artifactId>
 			<scope>test</scope>
 		</dependency>
-
 		<dependency>
-			<groupId>hsqldb</groupId>
+			<groupId>org.hsqldb</groupId>
 			<artifactId>hsqldb</artifactId>
-			<version>${hsql.version}</version>
+			<version>${hsqldb.version}</version>
 			<scope>test</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>javax.annotation</groupId>
 			<artifactId>javax.annotation-api</artifactId>
 			<version>${javax.api.version}</version>
 			<scope>test</scope>
 		</dependency>
-
 	</dependencies>
 </project>

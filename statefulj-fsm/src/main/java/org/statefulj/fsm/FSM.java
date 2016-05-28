@@ -1,20 +1,3 @@
-/***
- *
- * Copyright 2014 Andrew Hall
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
 package org.statefulj.fsm;
 
 import org.slf4j.Logger;
@@ -26,10 +9,11 @@ import org.statefulj.fsm.model.Transition;
 
 public class FSM<T> {
     private static final Logger logger = LoggerFactory.getLogger(FSM.class);
-    private static final int DEFAULT_RETRIES = 20;
-    private static final int DEFAULT_RETRY_INTERVAL = 250;
-    private int retryAttempts = FSM.DEFAULT_RETRIES;
-    private int retryInterval = FSM.DEFAULT_RETRY_INTERVAL;
+
+    private static final int DEFAULT_RETRIES = 100;
+    private static final int DEFAULT_RETRY_INTERVAL = 100;
+    private int retryAttempts = DEFAULT_RETRIES;
+    private int retryInterval = DEFAULT_RETRY_INTERVAL;
     private Persister<T> persister;
     private String name = "FSM";
 
@@ -56,27 +40,22 @@ public class FSM<T> {
     public State<T> onEvent(final T stateful, final String event, final Object... args) throws TooBusyException {
         int attempts = 0;
 
-        while ((this.retryAttempts == -1) || (attempts < this.retryAttempts)) {
+        while ((retryAttempts == -1) || (attempts < retryAttempts)) {
             try {
                 State<T> current = this.getCurrentState(stateful);
 
-                // Fetch the transition for this event from the current state
-                //
                 final Transition<T> transition = this.getTransition(event, current);
 
-                // Is there one?
-                //
                 if (transition != null) {
                     current = this.transition(stateful, current, event, transition, args);
                 } else {
-
-                    if (FSM.logger.isDebugEnabled()) {
-                        FSM.logger.debug("{}({})::{}({})->{}/noop", name, stateful.getClass().getSimpleName(), current.getName(), event, current.getName());
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("{}({})::{}({})->{}/noop", name, stateful.getClass().getSimpleName(), current.getName(), event, current.getName());
                     }
 
                     if (current.isBlocking()) {
                         this.setCurrent(stateful, current, current);
-                        throw new WaitAndRetryException(this.retryInterval);
+                        throw new WaitAndRetryException(retryInterval);
                     }
                 }
 
@@ -95,6 +74,7 @@ public class FSM<T> {
                 attempts++;
             }
         }
+
         FSM.logger.error("{}({})::Unable to process event", this.name, stateful);
         throw new TooBusyException();
     }
